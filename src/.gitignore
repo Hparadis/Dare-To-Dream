@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "dare-to-dream-9c136",
+  "private_key_id": "bff9c01f36097f1346a2f36008b525b6a8d71136",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCD0IIPXqau5O/h\nO8LFYoP6AVyeghouibgW7eJ+hJmISLxj0u14O8KfEuvKgaC7/07REkUp0dS9IXon\nPo8YOkcvUnWBloqHOlKS9O8ZIv45LA7BbxQJLlah9J0GRrEJwNBpO6zl33WeZtgO\n/ZkXZpvMF+7NbMIBoVbQ8MePJVGhPL9a/K4PGlW+PkLkLq0d58/4EzX+LbNwIx0t\nWSdQQRc0lKP1NLJiwZsOJXBuqQVE5MHiaM+fJ/ZYnKbQuqi76u371GfvCLllbbxF\nST+EwJWOx6j5bRHIzQqgW0xOgOXq4xLjNCm9bfBuvAxnh8Gk7cer2ktdDHDqv9B1\n42dAwxc3AgMBAAECggEAFIxmIhA+ysfsrz96MvwTF9+reRhODZAxjv2Bj/iK2KiC\nGcuxcktaoSK5eEWx8Wyw9D21Y3oPAHbeDI0fkIbRPwrLP6rgqIkKg1dEiLYgTHhW\nSohO5sl+/ttbuTU+9wbEVotTfjhSJSHiL6AQBApeYjge5Y49RjTJDGRkr6eBLLHK\n2cYin5bMKTzZuO2vVQqFdO4NBJgKptj9Jj5aJQFWg2xBdcISzx0ViftP0+xCtjyk\nimf+z3xlXUhk58kiiLQkGcC5u+jBAfgcUIEcqjp+1b4zV5sYk2N0O4uNs23WRhRF\nb/HgZgyoeUuXpZzor8C712ZCb8DZvsW9Iv08jqatgQKBgQC57UeJbMj9A58b27CE\nl2QnYkx7s4d5U15yLXPmA2GiQIuc7T03Jd78wxo29emGMzLTt4sl019diCmbxbBi\nOaQvRi4FyWLN55m6r9ykitn6VETEpQYnqv1gK0aISP/6ot4nMgPE/CM1YHP+ntfb\n44qKvbZr5e0THFROSStWTfTYgQKBgQC1flIxjuAHwTlbe+wqr/Ah7WCLZJHfyGib\nVTQp+a6xyU4znt/s+BrkxzuKRrfwKo5EPR6OiK/bPLqaR6QFMCIqeNb4YD7Sp2h6\nMfKiO/xnoRIeVIQtWJueTfJX0tlRHfvv6K787l5zStGYj03T0p3exfhtZAWB0sr6\n2I3Uo0rTtwKBgHzpe0xKt+W0jyrqN/d8tp73HadmADh02FkhTGJWFzwo3SN7B8uL\nN/rdITmXkWLF9vnisCujjMiL+FhdQplbXIEeR0FAAY+Qb+nKyRQK7VOPVfw/Wpk/\n+aaorGRXlxLOZS40HfAz7Xuo54VDNobWond/6ZUoDlTujX1jDyiWi08BAoGBAKA9\n2sYktopCQKkUPczmr+bUleQctGrXn/xdewQAjgwsh14uTNkFqYEKovgQPkDO4fM/\n32XLKzEvajXjQN7Pw6qqLGr5Vx5YbndM+EPjIJRCcyPSTS1YSXW4rlp6MCNdjN4i\nG7X3o+65RVskU3vNPlO9iPzUTcR034AgiQEP93X7AoGAb8hq0co7EYdMxbvdiSAK\nGSt3rXkrsSJ6iwFHiFc8VtcMWeiPsPaaa0VgzFPPICbv62lDspSiSpNMBDYW7ik/\nQb82bmCh5QkgpB3ME92dVovxqGjc72goO+e/Kfe0rRuHR6MGiVjA5B0N9ZXT1y00\nG1ESVBMK6P+etELUTD3ExIE=\n-----END PRIVATE KEY-----\n",
+  "client_email": "dare-to-dream@dare-to-dream-9c136.iam.gserviceaccount.com",
+  "client_id": "100015723928451236024",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/dare-to-dream%40dare-to-dream-9c136.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
