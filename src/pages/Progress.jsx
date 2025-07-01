@@ -42,7 +42,6 @@ import AssignmentIcon from '@mui/icons-material/Assignment';
 import NoteIcon from '@mui/icons-material/Note';
 
 
-
 const tabTypes = ['Sell', 'Buy', 'Rent'];
 
 export default function Progress() {
