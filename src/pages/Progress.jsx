@@ -33,7 +33,7 @@ import Workout from './Workout';
 import Yoga from './Yoga';
 import BooksModal from './BooksModal';
 
-import { nodes, content, notificationData, historyData } from './ProgressData';
+import { nodes, content, notificationData, historyData } from './progressData';
 import tracker from '../tracker';
 import GoalsTable from '../components/GoalsTable';
 import Journal from '../components/Journal';
