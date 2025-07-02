@@ -28,7 +28,6 @@ const Survey = () => {
   // Ensure setProfileImage is removed if you're not using it, or kept if you want to set a default.
   // For now, assuming we're not setting a profile image from the survey.
   const { setUserName, setUserDescription } = useUser(); // <--- Corrected destructuring based on UserContext update
-
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -58,6 +57,7 @@ const Survey = () => {
   };
 
   const handleSubmit = async (e) => {
+    setUserName("Hirwa");
     e.preventDefault();
     setLoading(true);
   
@@ -141,50 +141,56 @@ const Survey = () => {
             {step === 0 && (
               <Grid item sx={{ width: "100%" }}>
                 <FormControl fullWidth variant="outlined">
-                  <InputLabel sx={{ color: "#fff" }}>Problem</InputLabel>
-                  <Select
-                    name="problem"
-                    value={formData.problem}
-                    onChange={handleChange}
-                    label="Problem"
-                    sx={{
-                      color: "#fff",
-                      "& .MuiOutlinedInput-notchedOutline": { borderColor: "#fff" },
-                      "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "#fff" },
-                    }}
-                  >
-                    <MenuItem value="addiction">Addiction</MenuItem>
-                    <MenuItem value="depression">Depression</MenuItem>
-                    <MenuItem value="anxiety">Anxiety</MenuItem>
-                    <MenuItem value="ptsd">PTSD</MenuItem>
-                    <MenuItem value="bipolar">Bipolar Disorder</MenuItem>
-                  </Select>
-                </FormControl>
+                <InputLabel id="problem-label" sx={{ color: "#fff" }}>Problem</InputLabel>
+                <Select
+                  labelId="problem-label"
+                  id="problem"
+                  name="problem"
+                  value={formData.problem}
+                  onChange={handleChange}
+                  label="Problem"
+                  sx={{
+                    color: "#fff",
+                    "& .MuiOutlinedInput-notchedOutline": { borderColor: "#fff" },
+                    "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "#fff" },
+                  }}
+                >
+                  <MenuItem value="addiction">Addiction</MenuItem>
+                  <MenuItem value="depression">Depression</MenuItem>
+                  <MenuItem value="anxiety">Anxiety</MenuItem>
+                  <MenuItem value="ptsd">PTSD</MenuItem>
+                  <MenuItem value="bipolar">Bipolar Disorder</MenuItem>
+                </Select>
+              </FormControl>
+
               </Grid>
             )}
 
             {step === 1 && (
               <Grid item sx={{ width: "100%" }}>
                 <FormControl fullWidth variant="outlined">
-                  <InputLabel sx={{ color: "#fff" }}>Cause</InputLabel>
-                  <Select
-                    name="cause"
-                    value={formData.cause}
-                    onChange={handleChange}
-                    label="Cause"
-                    sx={{
-                      color: "#fff",
-                      "& .MuiOutlinedInput-notchedOutline": { borderColor: "#fff" },
-                      "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "#fff" },
-                    }}
-                  >
-                    <MenuItem value="family">Family</MenuItem>
-                    <MenuItem value="relationship">Relationship</MenuItem>
-                    <MenuItem value="society">Society</MenuItem>
-                    <MenuItem value="self-inflicted">Self-inflicted</MenuItem>
-                    <MenuItem value="others">Others</MenuItem>
-                  </Select>
-                </FormControl>
+              <InputLabel id="cause-label" sx={{ color: "#fff" }}>Cause</InputLabel>
+              <Select
+                labelId="cause-label"
+                id="cause"
+                name="cause"
+                value={formData.cause}
+                onChange={handleChange}
+                label="Cause"
+                sx={{
+                  color: "#fff",
+                  "& .MuiOutlinedInput-notchedOutline": { borderColor: "#fff" },
+                  "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "#fff" },
+                }}
+              >
+                <MenuItem value="family">Family</MenuItem>
+                <MenuItem value="relationship">Relationship</MenuItem>
+                <MenuItem value="society">Society</MenuItem>
+                <MenuItem value="self-inflicted">Self-inflicted</MenuItem>
+                <MenuItem value="others">Others</MenuItem>
+              </Select>
+            </FormControl>
+
               </Grid>
             )}
 

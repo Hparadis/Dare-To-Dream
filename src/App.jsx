@@ -1,6 +1,10 @@
-// src/App.jsx
-import React, { useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 import SignupPage from "./pages/SignupPage";
 import LoginPage from "./pages/LoginPage";
 import Dashboard from "./pages/Dashboard";
@@ -15,64 +19,36 @@ import SongsPlaylist from "./pages/SongsPlaylist";
 import Party from "./pages/Party";
 import Games from "./pages/Games";
 import Socialize from "./pages/Socialize";
-import { Container, Button } from "@mui/material";
+import { Container } from "@mui/material";
 import tracker from "./tracker";
 
-
 function App() {
-  // Call the tracker in a useEffect hook at the top of your component:
+  const [initialRoute, setInitialRoute] = useState(null);
+
   useEffect(() => {
     tracker.init();
+
+    // Check localStorage for returning user
+    const hasVisitedBefore = localStorage.getItem("hasVisited");
+
+    if (hasVisitedBefore) {
+      setInitialRoute("/login");
+    } else {
+      localStorage.setItem("hasVisited", "true");
+      setInitialRoute("/signup");
+    }
   }, []);
+
+  if (initialRoute === null) return null; // Wait until route is determined
 
   return (
     <Router>
       <Container maxWidth="md">
-        {/* Navigation Links */}
-        <nav
-          style={{
-            display: "flex",
-            gap: "20px",
-            justifyContent: "center",
-            marginBottom: "20px"
-          }}
-        >
-          <Button variant="outlined" component={Link} to="/signup">
-            Sign Up
-          </Button>
-          <Button variant="outlined" component={Link} to="/login">
-            Login
-          </Button>
-          <Button variant="outlined" component={Link} to="/survey">
-            Survey
-          </Button>
-          <Button variant="outlined" component={Link} to="/home">
-            Home
-          </Button>
-          <Button variant="outlined" component={Link} to="/progress">
-            Progress
-          </Button>
-          <Button variant="outlined" component={Link} to="/friends">
-            Friends
-          </Button>
-          <Button variant="outlined" component={Link} to="/community">
-            Community
-          </Button>
-          <Button variant="outlined" component={Link} to="/group">
-            Group
-          </Button>
-          <Button variant="outlined" component={Link} to="/dashboard">
-            Dashboard
-          </Button>
-        </nav>
-
-        {/* Page Routes */}
         <Routes>
+          <Route path="/" element={<Navigate to={initialRoute} />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/survey" element={<Survey />} />
-          {/* Both / and /home render the Home component */}
-          <Route path="/" element={<Home />} />
           <Route path="/home" element={<Home />} />
           <Route path="/progress" element={<Progress />} />
           <Route path="/friends" element={<Friends />} />

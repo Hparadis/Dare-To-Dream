@@ -357,6 +357,7 @@ export default function Home() {
 
   return (
     <Container
+       data-testid="home-page"
       maxWidth="lg"
       sx={{ p: 0, backgroundColor: "#333", minHeight: "100vh", color: "#fff", position: 'relative' }}
     >
