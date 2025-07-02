@@ -107,6 +107,7 @@ export const UserProvider = ({ children }) => {
     isAuthReady,
     db,
     auth,
+    setUserName,
   };
 
   return (
@@ -123,3 +124,4 @@ export const useUser = () => {
   }
   return context;
 };
+export {UserContext };

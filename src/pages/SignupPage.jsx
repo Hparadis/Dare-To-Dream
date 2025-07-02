@@ -2,7 +2,9 @@ import React, { useState,useEffect } from "react";
 import { Container, Paper, Grid, Typography, Button, Divider, CircularProgress } from "@mui/material";
 import CustomTextField from "./CustomTextField";
 import tracker from "../tracker";
+import { useNavigate } from "react-router-dom";
 export default function SignupPage() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -107,6 +109,7 @@ export default function SignupPage() {
             </Grid>
             <Grid item xs={12} sx={{ display: "flex", justifyContent: "center" }}>
               <Button
+                data-testid="signup-button"
                 type="submit"
                 variant="contained"
                 sx={{

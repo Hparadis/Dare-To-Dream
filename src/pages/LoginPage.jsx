@@ -13,7 +13,9 @@ import {
 } from "@mui/material";
 import CustomTextField from "./CustomTextField"; // Reuse our custom input from previous example
 import tracker from "../tracker"; 
+import { useNavigate } from "react-router-dom";
 export default function LoginPage() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -28,17 +30,18 @@ export default function LoginPage() {
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      // Validate that all required fields are filled
-      if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
+      // Validate email and password only
+      if (!formData.email || !formData.password) {
         setError("Please fill out all required fields.");
       } else {
         setError("");
         console.log("Form submitted", formData);
-        // After successful submission, navigate to the Survey page
-        navigate("/Home");
+        // Navigate to lowercase /home to match test
+        navigate("/home");
       }
     }, 1500);
   };
+  
   useEffect(() => {
     tracker.trackEvent("page_view", { page: "Login" });
   }, []);
@@ -47,6 +50,7 @@ export default function LoginPage() {
     tracker.trackEvent("user_login", { success: isSuccess });
     // Add your login logic here...
   };
+
 
   return (
     <Container
@@ -130,6 +134,7 @@ export default function LoginPage() {
             {/* Login Button */}
             <Grid item xs={12} sx={{ display: "flex", justifyContent: "center" }}>
               <Button
+                data-testid="login-button"
                 type="submit"
                 variant="contained"
                 sx={{
