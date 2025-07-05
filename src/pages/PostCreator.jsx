@@ -204,26 +204,18 @@ export default function PostCreator({ onPost }) {
       <Box
         sx={{
           background: "#222",
-          padding: "0.8rem",
+          padding: "0.4rem",
           borderRadius: "10px",
           mb: 2,
         }}
       >
-        <Typography variant="body2" color="#aaa" component="div">
-          🧠 Tips:
-          <ul style={{ paddingLeft: "1.2rem", marginTop: "0.4rem", marginBottom: 0 }}>
-            <li>End with <strong>?</strong> for questions</li>
-            <li>Start with <strong>//</strong> or <strong>#</strong> or include “comment” for comments</li>
-            <li>Use normal text for statements</li>
-          </ul>
-        </Typography>
       </Box>
 
       {/* Text input */}
       <Box
         sx={{
           backgroundColor: typeBackgrounds[postType],
-          padding: "0.5rem",
+          padding: "0.2rem",
           borderRadius: "10px",
           mb: 2,
         }}
@@ -256,7 +248,7 @@ export default function PostCreator({ onPost }) {
           src={preview}
           alt="preview"
           style={{
-            maxWidth: "160px",
+            maxWidth: "50px",
             borderRadius: "8px",
             marginBottom: "1rem",
           }}
@@ -265,7 +257,7 @@ export default function PostCreator({ onPost }) {
       {preview && mediaType === "video" && (
         <video
           controls
-          style={{ width: "100%", marginBottom: "1rem", borderRadius: "8px" }}
+          style={{ width: "50%", marginBottom: "1rem", borderRadius: "8px" }}
         >
           <source src={preview} type="video/mp4" />
           Your browser does not support the video tag.

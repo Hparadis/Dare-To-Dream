@@ -1,4 +1,3 @@
-// src/components/AppHeader.jsx
 import React, { useState } from "react";
 import {
   AppBar,
@@ -10,20 +9,22 @@ import {
   Avatar,
   Box,
   styled,
-  Paper,
+  Paper, 
   alpha,
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import { Link } from "react-router-dom"; // Link is used here
-import NotificationBell from "./NotificationBell"; // Assuming this path is correct
+import { Link } from "react-router-dom";
+import NotificationBell from "./NotificationBell";
 import EditIcon from "@mui/icons-material/Edit";
-import { useUser } from "../context/UserContext"; // Assuming this path is correct
+import { useUser } from "../context/UserContext";
 
 // Import the new overlay components
 import LegacyOverlay from "./LegacyOverlay";
 import EmotionalSpectrumOverlay from "./EmotionalSpectrumOverlay";
 import SettingsOverlay from "./SettingsOverlay";
 import ProfileDetailsOverlay from "./ProfileDetailsOverlay";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { getAuth, updateProfile } from "firebase/auth";
 
 const ProfileBox = styled(Box)(({ theme }) => ({
   position: "relative",
@@ -65,13 +66,13 @@ const ProfileBox = styled(Box)(({ theme }) => ({
 
 export default function AppHeader({ isAnonymous, onAvatarChange }) {
   const [anchorEl, setAnchorEl] = useState(null);
-  const [profileMenuAnchorEl, setProfileMenuAnchorEl] = useState(null); 
-  const { profileImage } = useUser();
-  const { userName, userDescription } = useUser(); 
+  const [profileMenuAnchorEl, setProfileMenuAnchorEl] = useState(null);
+  const { profileImage, userName, userDescription } = useUser(); // Destructure userName
 
   // State for new overlays visibility
   const [isLegacyOverlayOpen, setLegacyOverlayOpen] = useState(false);
-  const [isEmotionalSpectrumOverlayOpen, setEmotionalSpectrumOverlayOpen] = useState(false);
+  const [isEmotionalSpectrumOverlayOpen, setEmotionalSpectrumOverlayOpen] =
+    useState(false);
   const [isSettingsOverlayOpen, setSettingsOverlayOpen] = useState(false);
   const [isProfileDetailsOverlayOpen, setProfileDetailsOverlayOpen] =
     useState(false);
@@ -102,89 +103,134 @@ export default function AppHeader({ isAnonymous, onAvatarChange }) {
 
   return (
     <>
-      <AppBar
-        position="static"
+      <Paper
+        elevation={0} // No shadow for the paper itself, AppBar handles it
         sx={{
           background: "transparent",
-          boxShadow: "none",
-          borderBottom: "1px solid rgba(255,255,255,0.3)",
+          borderRadius: 5, // Border-radius for the header
+          border: "1px solid rgba(255,255,255,0.3)", // Border for the header
+          mb: 4, // Margin bottom for separation
+          overflow: 'hidden', // Ensures the border-radius is respected by the AppBar
+          margin: 1,
+          padding: 2,
         }}
       >
-        <Toolbar sx={{ justifyContent: "space-between" }}>
-          <Typography
-            variant="h6"
-            component={Link}
-            to="/"
-            sx={{ color: "#fff", textDecoration: "none" }}
-          >
-            Dare To Dream
-          </Typography>
+        <AppBar
+          position="static"
+          sx={{
+            background: "transparent",
+            boxShadow: "none",
+            // borderBottom: "1px solid rgba(255,255,255,0.3)", // This is now handled by the Paper component's border
+          }}
+        >
+          <Toolbar sx={{ justifyContent: "space-between" }}>
+            <Typography
+              variant="h6"
+              component={Link}
+              to="/"
+              sx={{ color: "#fff", textDecoration: "none" }}
+            >
+              {userName || "Dare To Dream"} {/* Use userName or default */}
+            </Typography>
 
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <NotificationBell />
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <NotificationBell />
 
-            <Box sx={{ position: "relative", display: "inline-block" }}>
-              <IconButton component={Link} to="/friends" aria-label="Profile">
-                <Avatar
-                  src={avatarSrc}
-                  alt="User Avatar"
-                  sx={{ width: 40, height: 40 }}
+              <Box sx={{ position: "relative", display: "inline-block" }}>
+                <IconButton
+                  component={Link}
+                  to="/friends"
+                  aria-label="Profile"
+                  sx={{
+                    border: "2px solid", // Border around profile picture
+                    borderColor: "rgba(255,255,255,0.3)", // Example color, adjust as needed
+                    borderRadius: "50%", // Border-radius for the profile picture
+                    p: 0.5, // Padding to give space for the border
+                  }}
+                >
+                  <Avatar
+                    src={avatarSrc}
+                    alt="User Avatar"
+                    sx={{ width: 40, height: 40 }}
+                  />
+                </IconButton>
+
+                <IconButton
+                  sx={{
+                    position: "absolute",
+                    bottom: 0,
+                    right: 0,
+                    backgroundColor: "#fff",
+                    width: 20,
+                    height: 20,
+                    p: 0,
+                    borderRadius: "50%",
+                    boxShadow: "0 0 2px rgba(0,0,0,0.5)",
+                  }}
+                  onClick={() => {
+                    if (!isAnonymous) {
+                      document.getElementById("avatar-upload").click();
+                    }
+                  }}
+                  disabled={isAnonymous}
+                  aria-label="Edit Avatar"
+                >
+                  <EditIcon sx={{ fontSize: 14 }} />
+                </IconButton>
+
+                <input
+                  id="avatar-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file && onAvatarChange && !isAnonymous) {
+                      const handleAvatarUpload = async (file) => {
+                        if (!file || isAnonymous) return;
+
+                        const storage = getStorage();
+                        const auth = getAuth();
+                        const user = auth.currentUser;
+
+                        const storageRef = ref(storage, `avatars/${user.uid}`);
+                        try {
+                          await uploadBytes(storageRef, file);
+                          const downloadURL = await getDownloadURL(storageRef);
+                          await updateProfile(user, { photoURL: downloadURL });
+                          if (onAvatarChange) onAvatarChange(downloadURL);
+                        } catch (error) {
+                          console.error("Error uploading avatar:", error);
+                        }
+                      };
+                      handleAvatarUpload(file); // Call the function directly
+                    }
+                  }}
+                  style={{ display: "none" }}
                 />
+              </Box>
+
+              <IconButton onClick={handleMenuOpen} aria-label="Menu">
+                <MoreVertIcon sx={{ color: "#fff" }} />
               </IconButton>
 
-              <IconButton
-                sx={{
-                  position: "absolute",
-                  bottom: 0,
-                  right: 0,
-                  backgroundColor: "#fff",
-                  width: 20,
-                  height: 20,
-                  p: 0,
-                  borderRadius: "50%",
-                  boxShadow: "0 0 2px rgba(0,0,0,0.5)",
-                }}
-                onClick={() => {
-                  if (!isAnonymous) {
-                    document.getElementById("avatar-upload").click();
-                  }
-                }}
-                disabled={isAnonymous}
-                aria-label="Edit Avatar"
+              <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={handleMenuClose}
               >
-                <EditIcon sx={{ fontSize: 14 }} />
-              </IconButton>
-
-              <input
-                id="avatar-upload"
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files[0];
-                  if (file && onAvatarChange && !isAnonymous) {
-                    const url = URL.createObjectURL(file);
-                    onAvatarChange(url);
-                  }
-                }}
-                style={{ display: "none" }}
-              />
+                <MenuItem onClick={handleMenuClose} component={Link} to="/progress">
+                  Progress
+                </MenuItem>
+                <MenuItem onClick={handleOpenLegacy}>Legacy</MenuItem>
+                <MenuItem onClick={handleOpenEmotionalSpectrum}>
+                  Emotional Spectrum
+                </MenuItem>
+                <MenuItem onClick={handleOpenSettings}>Settings</MenuItem>
+              </Menu>
             </Box>
-
-            <IconButton onClick={handleMenuOpen} aria-label="Menu">
-              <MoreVertIcon sx={{ color: "#fff" }} />
-            </IconButton>
-
-            <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
-              <MenuItem onClick={handleMenuClose} component={Link} to="/progress">
-                Progress
-              </MenuItem>
-              <MenuItem onClick={handleOpenLegacy}>Legacy</MenuItem>
-              <MenuItem onClick={handleOpenEmotionalSpectrum}>Emotional Spectrum</MenuItem>
-              <MenuItem onClick={handleOpenSettings}>Settings</MenuItem>
-            </Menu>
-          </Box>
-        </Toolbar>
-      </AppBar>
+          </Toolbar>
+        </AppBar>
+      </Paper>
 
       {/* Overlays rendered here */}
       <LegacyOverlay

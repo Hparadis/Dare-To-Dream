@@ -17,7 +17,6 @@ export default function Sidebar({
   onCreateClick,
   onGroupClick,
   onCommunityClick,
-  // --- NEW PROPS FOR DESKTOP NAVIGATION ---
   onShowAllGroups,
   onShowAllCommunities,
   onShowAllFriends,

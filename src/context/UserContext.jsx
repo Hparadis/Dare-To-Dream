@@ -108,6 +108,7 @@ export const UserProvider = ({ children }) => {
     db,
     auth,
     setUserName,
+    setUserDescription,
   };
 
   return (

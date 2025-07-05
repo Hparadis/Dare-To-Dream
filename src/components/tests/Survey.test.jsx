@@ -1,3 +1,8 @@
+import { vi } from 'vitest'
+vi.mock('../../api', () => ({
+    submitSurvey: vi.fn().mockResolvedValue({ status: 'success' })
+  }))
+
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import Survey from "../../pages/Survey";
@@ -20,9 +25,8 @@ const MockUserProvider = ({ children }) => (
   </UserContext.Provider>
 );
 
-test("Survey > submits the survey form and redirects to /home", async () => {
-    const HomeMock = () => <div data-testid="home-page">Home Page</div>;
-
+  test("Survey > submits the survey form and redirects to /home", async () => {
+     const HomeMock = () => <div data-testid="home-page">Home Page</div>;
   render(
     <MemoryRouter initialEntries={["/survey"]}>
       <MockUserProvider>
@@ -70,5 +74,6 @@ test("Survey > submits the survey form and redirects to /home", async () => {
 
   await waitFor(() => {
     expect(screen.getByTestId("home-page")).toBeInTheDocument();
-  });  
+  });
+      
 });
