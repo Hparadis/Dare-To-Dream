@@ -28,7 +28,7 @@ export default function ProgressSidebar({ nodes, selected, handleSelect }) {
                 borderRadius: 1,
                 background: selected === n.label ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
                 '&:hover': {
-                  background: 'rgba(255, 255, 255, 0.08)',
+                  background: 'rgba(255, 255, 255, 0.1)',
                 },
               }}
             >

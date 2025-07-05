@@ -16,6 +16,7 @@ import {
   DialogActions,
   useTheme,
   useMediaQuery,
+  alpha, // Import alpha for dynamic transparency
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
@@ -23,12 +24,27 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 export default function Journal({ onBack }) {
   const theme = useTheme();
+  // Using theme breakpoints for more robust responsiveness
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
+
   const [entries, setEntries] = useState([
     {
       id: 1,
-      date: new Date().toLocaleDateString(),
-      text: 'Today I felt really productive and calm.',
+      date: new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      }),
+      text: 'Today I felt really productive and calm. I managed to finish my tasks ahead of schedule and also took some time for meditation.',
+    },
+    {
+      id: 2,
+      date: new Date(Date.now() - 86400000).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      }),
+      text: "Yesterday was a bit challenging. I faced some unexpected roadblocks, but I'm proud of how I handled the stress.",
     },
   ]);
   const [newEntry, setNewEntry] = useState('');
@@ -36,7 +52,11 @@ export default function Journal({ onBack }) {
 
   const addEntry = () => {
     if (!newEntry.trim()) return;
-    const today = new Date().toLocaleDateString();
+    const today = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
     setEntries((prev) => [
       { id: Date.now(), date: today, text: newEntry.trim() },
       ...prev,
@@ -69,69 +89,100 @@ export default function Journal({ onBack }) {
   return (
     <Box
       sx={{
-        // --- RESIZING / FITTING CHANGES ---
-        // Removed fixed width for md breakpoint, allowing it to scale.
-        // Set a max-width for very large screens to keep content readable.
-        width: '100%', // Take full width of its parent
-        maxWidth: 800, // Max width of the content for readability on very large screens
-        mx: 'auto', // Center the box horizontally
-        // Added padding to account for the absolute positioning of the arrow
-        // The 80px (theme.spacing(10)) ensures space for the title below the arrow
-        p: { xs: 2, sm: 3, md: 4 }, // Responsive padding
-        pt: { xs: 8, sm: 10, md: 10 }, // Padding-top to push content below the arrow
-        // --- END RESIZING / FITTING CHANGES ---
+        width: '100%', // Takes full available width
+        maxWidth: 800, // Max width for content readability on large screens
+        mx: 'auto', // Centers the content horizontally
 
-        mt: 0, // Removed top margin from the Box itself, controlled by parent layout
-        minHeight: '100vh', // Make it take at least full viewport height
-        bgcolor: 'rgba(255,255,255,0.05)',
-        borderRadius: 0, // Often full-screen components don't have border-radius
-        border: 'none', // Remove border for a cleaner full-screen look
-        color: '#eee',
+        // Responsive padding, especially top padding to clear the absolute arrow
+        p: { xs: 2, sm: 3, md: 4 },
+        pt: { xs: 8, sm: 10, md: 10 }, // Increased top padding for arrow clearance
+
+        mt: 0, // No margin-top needed as parent controls positioning
+        minHeight: '100vh', // Ensure it takes at least full viewport height
+        bgcolor: alpha(theme.palette.background.paper, 0.05), // Consistent glassmorphic background
+        borderRadius: theme.shape.borderRadius, // Use theme's border radius
+        border: `1px solid ${alpha(theme.palette.common.white, 0.2)}`, // Soft border for depth
+        color: "#fff", // Consistent text color
         position: 'relative', // Essential for the absolute positioning of the IconButton
+        boxSizing: 'border-box', // Include padding in the element's total width and height
       }}
     >
       {/* Back Arrow Button */}
       <IconButton
-        onClick={onBack} // This calls the function passed from the parent
+        onClick={onBack} // Calls the onBack function passed from Progress.jsx
         sx={{
           position: 'absolute',
           top: { xs: theme.spacing(2), sm: theme.spacing(3) }, // Responsive top spacing
           left: { xs: theme.spacing(2), sm: theme.spacing(3) }, // Responsive left spacing
-          color: '#fff',
+          color: "#fff", // White color for the arrow
           zIndex: 1, // Ensures it's above other content
+          transition: 'transform 0.3s ease-in-out', // Smooth transition on hover
+          '&:hover': {
+            transform: 'scale(1.1)', // Slightly enlarge on hover
+            bgcolor: alpha(theme.palette.primary.main, 0.1), // Subtle hover background
+          },
         }}
       >
         <ArrowBackIcon />
       </IconButton>
 
-      {/* Journal Title - Centered and now has appropriate spacing from the top */}
-      <Typography variant="h5" sx={{ mb: 3, fontWeight: 'bold', textAlign: 'center' }}>
+      {/* Journal Title */}
+      <Typography
+        variant="h3"
+        sx={{
+          mb: 3,
+          fontWeight: 'bold',
+          textAlign: 'center',
+          color: "#fff", // A slightly brighter color for the title
+        }}
+      >
         My Journal
       </Typography>
 
+      {/* Optional: Journal Title TextField and Reminder */}
       <Box
         sx={{
           display: 'flex',
-          flexDirection: { xs: 'column', md: 'row' },
+          flexDirection: { xs: 'column', md: 'row' }, // Stacks on small screens
           justifyContent: 'space-between',
-          alignItems: { xs: 'stretch', md: 'center' },
+          alignItems: { xs: 'stretch', md: 'center' }, // Stretches on small screens
           gap: 2,
           mb: 2,
+          p: { xs: 0, sm: 1 }, // Small horizontal padding on very small screens
         }}
       >
-        {/* Placeholder for the journal title text field */}
         <TextField
           fullWidth
           variant="outlined"
-          placeholder="Enter journal title"
-          sx={{ background: '#222', color: '#eee' }}
-          InputProps={{ sx: { color: '#eee' } }}
+          placeholder="Daily thought summary..."
+          sx={{
+            background: alpha(theme.palette.grey[900], 0.6), // Darker background for input
+            borderRadius: theme.shape.borderRadius,
+            '& .MuiOutlinedInput-root': {
+              color: "#fff",
+              '& fieldset': { borderColor: alpha(theme.palette.common.white, 0.3) },
+              '&:hover fieldset': { borderColor: theme.palette.primary.light },
+              '&.Mui-focused fieldset': { borderColor: theme.palette.primary.main, borderWidth: '2px' },
+            },
+            '& .MuiInputLabel-root': { color: theme.palette.text.secondary },
+          }}
+          InputProps={{ sx: { color: theme.palette.text.primary } }} // Ensure input text color
         />
-        <Typography sx={{ color: '#aaa' }}>Reminder: Reflect daily</Typography>
+        <Typography
+          sx={{
+            color: "#fff",
+            minWidth: 'fit-content', // Prevent reminder from shrinking too much
+            textAlign: { xs: 'center', md: 'right' },
+          }}
+          variant="body2"
+        >
+          💡 Reflect daily for growth.
+        </Typography>
       </Box>
 
+      {/* Main Journal Entry TextField */}
       <TextField
-        label="Write your thoughts..."
+        label="What's on your mind today?"
         variant="filled"
         multiline
         minRows={4}
@@ -140,44 +191,91 @@ export default function Journal({ onBack }) {
         onChange={(e) => setNewEntry(e.target.value)}
         sx={{
           mb: 2,
-          bgcolor: '#222',
-          '& .MuiInputBase-input': { color: '#eee' },
-          '& .MuiInputLabel-root': { color: '#aaa' },
+          bgcolor: alpha(theme.palette.grey[900], 0.6), // Darker background for consistency
+          borderRadius: theme.shape.borderRadius, // Apply border radius
+          '& .MuiInputBase-input': { color: "#fff", },
+          '& .MuiInputLabel-root': { color: theme.palette.text.secondary },
+          '& .MuiFilledInput-root': {
+            borderRadius: theme.shape.borderRadius, // Ensure border radius applies to filled variant
+            '&:before': { borderBottom: 'none !important' }, // Remove default filled underline
+            '&:after': { borderBottom: 'none !important' }, // Remove default filled underline on focus
+            '&:hover:not(.Mui-disabled):before': { borderBottom: 'none !important' },
+          },
         }}
       />
 
-      <Button variant="contained" onClick={addEntry} disabled={!newEntry.trim()}>
+      {/* Save Entry Button */}
+      <Button
+        variant="contained"
+        onClick={addEntry}
+        disabled={!newEntry.trim()}
+        sx={{
+          py: 1.5,
+          px: 4,
+          fontWeight: 'bold',
+          letterSpacing: 1,
+          bgcolor: theme.palette.primary.main,
+          '&:hover': {
+            bgcolor: theme.palette.primary.dark,
+            boxShadow: theme.shadows[6],
+          },
+          '&.Mui-disabled': {
+            bgcolor: alpha(theme.palette.primary.main, 0.3),
+            color: alpha(theme.palette.common.white, 0.6),
+          },
+        }}
+      >
         Save Entry
       </Button>
 
+      {/* Journal Entries List */}
       <Paper
         sx={{
           mt: 3,
-          maxHeight: 400,
-          overflowY: 'auto',
-          bgcolor: '#1e1e1e',
-          borderRadius: 1,
-          border: '1px solid #333',
+          maxHeight: 400, // Fixed height for scrollable area
+          overflowY: 'auto', // Scrollbar for entries
+          bgcolor: alpha(theme.palette.grey[900], 0.4), // Semi-transparent dark background
+          borderRadius: theme.shape.borderRadius,
+          border: `1px solid ${alpha(theme.palette.common.white, 0.2)}`,
+          // Custom scrollbar for better aesthetics
+          '&::-webkit-scrollbar': {
+            width: '8px',
+          },
+          '&::-webkit-scrollbar-track': {
+            background: alpha(theme.palette.common.black, 0.2),
+            borderRadius: '10px',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            background: alpha(theme.palette.primary.main, 0.6),
+            borderRadius: '10px',
+            '&:hover': {
+              background: theme.palette.primary.main,
+            },
+          },
         }}
       >
         <List>
           {entries.length === 0 && (
             <Typography
-              sx={{ p: 2, color: '#888', textAlign: 'center' }}
-              variant="body2"
+              sx={{ p: 3, color: theme.palette.text.secondary, textAlign: 'center' }}
+              variant="body1"
             >
-              No journal entries yet.
+              Start your journey! Write your first entry above.
             </Typography>
           )}
           {entries.map(({ id, date, text }) => (
             <ListItem
               key={id}
               sx={{
-                flexDirection: 'column',
+                flexDirection: 'column', // Stacks date, text, and buttons
                 alignItems: 'flex-start',
-                borderBottom: '1px solid #333',
-                px: 2,
-                py: 1,
+                borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`, // Subtle separator
+                px: 3,
+                py: 2,
+                transition: 'background-color 0.3s ease',
+                '&:hover': {
+                  bgcolor: alpha(theme.palette.grey[800], 0.2), // Light hover effect
+                },
               }}
             >
               <Box
@@ -186,17 +284,18 @@ export default function Journal({ onBack }) {
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  mb: 0.5,
+                  mb: 1,
+                  flexWrap: 'wrap', // Allow date/buttons to wrap on very small screens
                 }}
               >
-                <Typography variant="caption" color="#aaa">
+                <Typography variant="caption" color={theme.palette.text.secondary} sx={{ fontWeight: 'bold' }}>
                   {date}
                 </Typography>
-                <Box>
+                <Box sx={{ display: 'flex', gap: 0.5 }}>
                   <IconButton
                     size="small"
                     onClick={() => openEditDialog({ id, date, text })}
-                    sx={{ color: '#4db6ac' }}
+                    sx={{ color: theme.palette.info.light }} // A distinct edit color
                     aria-label="edit"
                   >
                     <EditIcon fontSize="small" />
@@ -204,7 +303,7 @@ export default function Journal({ onBack }) {
                   <IconButton
                     size="small"
                     onClick={() => deleteEntry(id)}
-                    sx={{ color: '#ff5555' }}
+                    sx={{ color: theme.palette.error.light }} // A distinct delete color
                     aria-label="delete"
                   >
                     <DeleteIcon fontSize="small" />
@@ -213,16 +312,38 @@ export default function Journal({ onBack }) {
               </Box>
               <ListItemText
                 primary={text}
-                primaryTypographyProps={{ sx: { whiteSpace: 'pre-wrap' } }}
+                primaryTypographyProps={{
+                  sx: {
+                    whiteSpace: 'pre-wrap', // Preserve line breaks in text
+                    color: "#fff",
+                    fontSize: { xs: '0.9rem', sm: '1rem' }, // Responsive font size
+                  },
+                }}
               />
             </ListItem>
           ))}
         </List>
       </Paper>
 
-      <Dialog open={!!editEntry} onClose={closeEditDialog} fullWidth maxWidth="sm">
-        <DialogTitle>Edit Journal Entry</DialogTitle>
-        <DialogContent>
+      {/* Edit Dialog */}
+      <Dialog
+        open={!!editEntry}
+        onClose={closeEditDialog}
+        fullWidth
+        maxWidth="sm"
+        PaperProps={{
+          sx: {
+            bgcolor: alpha(theme.palette.background.paper, 0.95), // Slightly more opaque background
+            color: "#fff",
+            borderRadius: theme.shape.borderRadius * 2, // More rounded dialog
+            border: `1px solid ${alpha(theme.palette.common.white, 0.3)}`,
+          },
+        }}
+      >
+        <DialogTitle sx={{ bgcolor: theme.palette.primary.dark, color: theme.palette.common.white }}>
+          Edit Journal Entry
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
           <TextField
             multiline
             minRows={4}
@@ -232,15 +353,36 @@ export default function Journal({ onBack }) {
             onChange={(e) =>
               setEditEntry((prev) => (prev ? { ...prev, text: e.target.value } : null))
             }
-            sx={{ mt: 1 }}
+            sx={{
+              mt: 1,
+              bgcolor: alpha(theme.palette.grey[900], 0.6),
+              borderRadius: theme.shape.borderRadius,
+              '& .MuiOutlinedInput-root': {
+                color: theme.palette.text.primary,
+                '& fieldset': { borderColor: alpha(theme.palette.common.white, 0.3) },
+                '&:hover fieldset': { borderColor: theme.palette.primary.light },
+                '&.Mui-focused fieldset': { borderColor: theme.palette.primary.main, borderWidth: '2px' },
+              },
+              '& .MuiInputLabel-root': { color: theme.palette.text.secondary },
+            }}
           />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={closeEditDialog}>Cancel</Button>
+        <DialogActions sx={{ p: 3, pt: 0 }}>
+          <Button onClick={closeEditDialog} sx={{ color: theme.palette.text.secondary }}>
+            Cancel
+          </Button>
           <Button
             variant="contained"
             onClick={saveEdit}
             disabled={!editEntry?.text.trim()}
+            sx={{
+              bgcolor: theme.palette.primary.main,
+              '&:hover': { bgcolor: theme.palette.primary.dark },
+              '&.Mui-disabled': {
+                bgcolor: alpha(theme.palette.primary.main, 0.3),
+                color: alpha(theme.palette.common.white, 0.6),
+              },
+            }}
           >
             Save
           </Button>

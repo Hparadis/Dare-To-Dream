@@ -13,6 +13,11 @@ import {
   Avatar,
   Typography,
   Button,
+  Dialog,         
+  DialogTitle,    
+  DialogContent,  
+  DialogActions,  
+  TextField,               
 } from "@mui/material";
 import AppHeader from "./AppHeader";
 import Sidebar from "./Sidebar";
@@ -90,6 +95,8 @@ const SharedOverlayContent = ({ title, items, onItemClick, emptyMessage, type })
   </Box>
 );
 
+
+
 export default function Home() {
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
@@ -110,13 +117,69 @@ export default function Home() {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState("success");
-  
+  const [openSuggestionDialog, setOpenSuggestionDialog] = useState(false);
+  const [suggestionText, setSuggestionText] = useState("");
+  const [isSubmittingSuggestion, setIsSubmittingSuggestion] = useState(false);
+
+  const handleSuggestClick = () => {
+    setOpenSuggestionDialog(true);
+  };
+  const handleCloseSuggestionDialog = () => {
+    setOpenSuggestionDialog(false);
+    setSuggestionText(""); 
+    setSnackbarOpen(false);
+  };
+  const submitSuggestionApi = async (suggestion, userId) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        if (suggestion.length > 5) { 
+          console.log("Suggestion submitted:", suggestion, "by user:", userId);
+          resolve({ success: true, message: "Thank you for your suggestion!" });
+        } else {
+          resolve({ success: false, message: "Suggestion is too short." });
+        }
+      }, 1000);
+    });
+  };
+ 
+  const handleSubmitSuggestion = async () => {
+    if (!suggestionText.trim()) {
+      setSnackbarMessage("Suggestion cannot be empty.");
+      setSnackbarSeverity("warning");
+      setSnackbarOpen(true);
+      return;
+    }
+
+    setIsSubmittingSuggestion(true);
+    const userId = auth.currentUser ? auth.currentUser.uid : "anonymous"; // Get user ID
+    try {
+      // Replace submitSuggestionApi with your actual API call
+      const response = await submitSuggestionApi(suggestionText, userId);
+      setSnackbarMessage(response.message);
+      setSnackbarSeverity(response.success ? "success" : "error");
+      setSnackbarOpen(true);
+      if (response.success) {
+        setSuggestionText(""); // Clear the input field
+        setTimeout(() => {
+          handleCloseSuggestionDialog(); // Close dialog after successful submission
+        }, 1500); // Give user time to read success message
+      }
+    } catch (error) {
+      setSnackbarMessage("Failed to submit suggestion. Please try again.");
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
+      console.error("Error submitting suggestion:", error);
+    } finally {
+      setIsSubmittingSuggestion(false);
+    }
+  };
+
 
   const navigate = useNavigate();
   const location = useLocation();
 
   const handleNavChange = async (view) => {
-    console.log("handleNavChange called with view:", view);
+    if (process.env.NODE_ENV === 'development') console.log("handleNavChange:", view);
     setShowGroups(false);
     setShowCommunities(false);
     setShowFriends(false);
@@ -198,11 +261,7 @@ export default function Home() {
     setIsCreateModalOpen(false);
     console.log("Create Modal Open state set to false. isCreateModalOpen:", false);
   };
-  const handleSuggestClick = () => {
-    setSnackbarMessage("Suggestion action triggered!");
-    setSnackbarSeverity("info");
-    setSnackbarOpen(true);
-  };
+  
   
   const inviteFriend = (friend) => {
     setSnackbarMessage(`Inviting ${friend.name} to connect!`);
@@ -221,12 +280,15 @@ export default function Home() {
     if (type === "community") navigate("/community", { state: { community: item } });
     handleCloseOverlay();
   };
+  const useUserId = () => localStorage.getItem("userId");
 
   useEffect(() => {
     const getAllData = async () => {
       try {
-        const fetchedGroups = await fetchGroups();
-        const fetchedCommunities = await fetchCommunities();
+        const [fetchedGroups, fetchedCommunities] = await Promise.all([
+          fetchGroups(),
+          fetchCommunities(),
+        ]);
         
         setGroups(fetchedGroups || []);
         setCommunities(fetchedCommunities || []);
@@ -253,7 +315,7 @@ export default function Home() {
   console.log("Home render", { showGroups, showCommunities, showFriends, isCreateModalOpen });
 
   const handleCreateGroup = async (groupName, description) => {
-    const userId = localStorage.getItem("userId");
+    const userId = useUserId();
     if (userId && groupName) {
       try {
         console.log("Attempting to create group:", { groupName, description, userId });
@@ -276,7 +338,7 @@ export default function Home() {
   };
 
   const handleCreateCommunity = async (communityName, description) => {
-    const userId = localStorage.getItem("userId");
+    const userId = useUserId();
     if (userId && communityName) {
       try {
         console.log("Attempting to create community:", { communityName, description, userId });
@@ -297,9 +359,8 @@ export default function Home() {
       }
     }
   };
-  
   const handleJoinGroup = async (groupId) => {
-    const userId = localStorage.getItem("userId");
+    const userId = useUserId();
     if (userId && groupId) {
       try {
         await joinGroup(userId, groupId);
@@ -310,7 +371,6 @@ export default function Home() {
         setSnackbarSeverity("success");
         setSnackbarOpen(true);
          if (showGroups) {
-            const refreshedGroups = await fetchGroups();
             setGroups(refreshedGroups || []);
         }
       } catch (error) {
@@ -323,7 +383,7 @@ export default function Home() {
   };
 
   const handleJoinCommunity = async (communityId) => {
-    const userId = localStorage.getItem("userId");
+    const userId = useUserId();
     if (userId && communityId) {
       try {
         await joinCommunity(userId, communityId);
@@ -562,12 +622,37 @@ export default function Home() {
       />
 
       {/* Snackbar for feedback */}
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={4000}
-        onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
+      <Dialog open={openSuggestionDialog} onClose={handleCloseSuggestionDialog} fullWidth maxWidth="sm">
+        <DialogTitle sx={{ bgcolor: "#fbc02d", color: "#fff" }}>Submit a Suggestion</DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          <TextField
+            autoFocus
+            margin="dense"
+            id="suggestion"
+            label="Your Suggestion"
+            type="text"
+            fullWidth
+            multiline
+            rows={4}
+            variant="outlined"
+            value={suggestionText}
+            onChange={(e) => setSuggestionText(e.target.value)}
+            placeholder="Tell us what you think or what new features you'd like to see!"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseSuggestionDialog} color="primary" disabled={isSubmittingSuggestion}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmitSuggestion} color="primary" variant="contained" disabled={isSubmittingSuggestion}>
+            {isSubmittingSuggestion ? <CircularProgress size={24} /> : "Submit"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar for submission feedback */}
+      <Snackbar open={snackbarOpen} autoHideDuration={3000} onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
         <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%' }}>
           {snackbarMessage}
         </Alert>

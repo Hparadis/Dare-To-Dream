@@ -14,7 +14,7 @@ db = None
 from .survey_routes import survey_bp
 from .groups_routes import groups_bp
 from .communities_routes import communities_bp
-from .groups import grouping_bp
+from src.backend.groups import grouping_bp
 from .ai_routes import ai_bp
 # --- END relative imports ---
 
@@ -50,8 +50,7 @@ else:
 
 # Register blueprints
 app.register_blueprint(survey_bp, url_prefix='/')
-app.register_blueprint(grouping_bp, url_prefix='/')
-app.register_blueprint(groups_bp, url_prefix='/groups')
+app.register_blueprint(grouping_bp, url_prefix='/groups')
 app.register_blueprint(communities_bp, url_prefix='/communities')
 app.register_blueprint(ai_bp, url_prefix='/api')
 

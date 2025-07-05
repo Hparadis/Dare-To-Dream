@@ -1,6 +1,12 @@
 // src/api.js
 
-const API_BASE_URL = "http://localhost:5000"; // Your Flask backend URL
+const BASE_URL =
+  import.meta.env.MODE === 'development'
+    ? 'http://localhost:5000'
+    : import.meta.env.VITE_BACKEND_URL;
+    console.log(import.meta.env.VITE_BACKEND_URL);
+
+
 
 /**
  * Generic helper function to handle API responses.
@@ -50,7 +56,7 @@ async function handleApiResponse(response) {
  */
 export const submitSurvey = async (surveyData) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/submit-survey`, {
+    const response = await fetch(`${BASE_URL }/submit-survey`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(surveyData),
@@ -71,7 +77,7 @@ export const submitSurvey = async (surveyData) => {
  */
 export const runGrouping = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/run-grouping`);
+    const response = await fetch(`${BASE_URL }/run-grouping`);
     const data = await handleApiResponse(response);
     return data;
   } catch (error) {
@@ -88,7 +94,7 @@ export const runGrouping = async () => {
  */
 export const getInitialFriends = async (userId) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/initial-friends/${userId}`);
+    const response = await fetch(`${BASE_URL }/initial-friends/${userId}`);
     const data = await handleApiResponse(response);
     return data.suggestedFriends || [];
   } catch (error) {
@@ -104,7 +110,7 @@ export const getInitialFriends = async (userId) => {
  */
 export const fetchGroups = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/groups/list`);
+    const response = await fetch(`${BASE_URL }/groups/list`);
     const data = await handleApiResponse(response);
     return data.groups || [];
   } catch (error) {
@@ -120,7 +126,7 @@ export const fetchGroups = async () => {
  */
 export const fetchCommunities = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/communities/list`);
+    const response = await fetch(`${BASE_URL }/communities/list`);
     const data = await handleApiResponse(response);
     return data.communities || [];
   } catch (error) {
@@ -140,7 +146,7 @@ export const fetchUserProfilesByIds = async (userIds) => {
     return [];
   }
   try {
-    const response = await fetch(`${API_BASE_URL}/users/profiles`, {
+    const response = await fetch(`${BASE_URL }/users/profiles`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userIds: userIds }),
@@ -161,7 +167,7 @@ export const fetchUserProfilesByIds = async (userIds) => {
  */
 export const moderateContent = async (text) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/moderate-content`, {
+    const response = await fetch(`${BASE_URL }/api/moderate-content`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: text }),
@@ -182,7 +188,7 @@ export const moderateContent = async (text) => {
  */
 export const sendMessage = async (messagePayload) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/chat/send-message`, {
+    const response = await fetch(`${BASE_URL }/chat/send-message`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(messagePayload),
@@ -204,7 +210,7 @@ export const sendMessage = async (messagePayload) => {
  */
 export const getChatMessages = async (user1Id, user2Id) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/chat/get-messages/${user1Id}/${user2Id}`);
+    const response = await fetch(`${BASE_URL }/chat/get-messages/${user1Id}/${user2Id}`);
     const data = await handleApiResponse(response);
     return data.messages || [];
   } catch (error) {
