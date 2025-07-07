@@ -11,9 +11,11 @@ import {
   Checkbox,
   FormControlLabel
 } from "@mui/material";
-import CustomTextField from "./CustomTextField"; // Reuse our custom input from previous example
+import CustomTextField from "./CustomTextField"; 
 import tracker from "../tracker"; 
 import { useNavigate } from "react-router-dom";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../config/firebase"; 
 export default function LoginPage() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: "", password: "" });
@@ -25,21 +27,34 @@ export default function LoginPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
+    setError("");
+  
+    if (!formData.email || !formData.password) {
+      setError("Please fill in all fields.");
       setLoading(false);
-      // Validate email and password only
-      if (!formData.email || !formData.password) {
-        setError("Please fill out all required fields.");
+      return;
+    }
+  
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
+      console.log("Login successful:", userCredential.user);
+      tracker.trackEvent("user_login", { success: true });
+      navigate("/home");
+    } catch (error) {
+      if (error.code === "auth/user-not-found") {
+        navigate("/signup", { state: { email: formData.email } });
+      } else if (error.code === "auth/wrong-password") {
+        setError("Incorrect password. Try again.");
       } else {
-        setError("");
-        console.log("Form submitted", formData);
-        // Navigate to lowercase /home to match test
-        navigate("/home");
+        setError("Login failed: " + error.message);
       }
-    }, 1500);
+      tracker.trackEvent("user_login", { success: false, error: error.code });
+    } finally {
+      setLoading(false);
+    }
   };
   
   useEffect(() => {
@@ -170,9 +185,15 @@ export default function LoginPage() {
               "&:hover": { backgroundColor: "rgba(255, 255, 255, 0.2)" }
             }}
           >
-            Login with Google
+           Google
           </Button>
         </Grid>
+        <Typography align="center" sx={{ mt: 2, color: "#fff" }}>
+          Don’t have an account?{" "}
+          <Button onClick={() => navigate("/signup")} sx={{ color: "#fff", textTransform: "none" }}>
+            Sign up
+          </Button>
+        </Typography>
       </Paper>
     </Container>
   );

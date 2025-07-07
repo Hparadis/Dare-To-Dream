@@ -384,9 +384,10 @@ export default function Progress() {
             bottom: 0,
             left: 0,
             right: 0,
-            background: '#333',
-            boxShadow: '0px -5px 15px rgba(0, 0, 0, 0.2)',
             zIndex: 1000,
+            backgroundColor: "transparent", 
+            color: "#fff", 
+            borderTop: "1px solid rgba(255,255,255,0.3)",
           }}
           showLabels
         >
