@@ -3,13 +3,13 @@ import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } f
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getFirestore } from "firebase/firestore";
 const firebaseConfig = {
-    apiKey: "AIzaSyCMXmbZvL11F305yiPWOzm45vOWrY3tTYk",
-    authDomain: "dare-to-dream-9c136.firebaseapp.com",
-    projectId: "dare-to-dream-9c136",
-    storageBucket: "dare-to-dream-9c136.firebasestorage.app",
-    messagingSenderId: "277549748441",
-    appId: "1:277549748441:web:9da210ead397604479aec8",
-    measurementId: "G-9CZZ7H3WVN"
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+    authDomain:import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID,
+    measurementId: import.meta.env.VITE_FIREBASE_MESAUREMENT_ID
   };
 
 export const app = initializeApp(firebaseConfig);

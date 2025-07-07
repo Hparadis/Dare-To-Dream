@@ -161,8 +161,8 @@ export default function MobileNavigation({
           left: 0,
           right: 0,
           zIndex: 1000,
-          backgroundColor: "#333",
-          borderTop: "1px solid #33",
+          backgroundColor: "transparent",
+          borderTop: "1px solid #333",
         }}
         elevation={4}
       >
@@ -170,7 +170,7 @@ export default function MobileNavigation({
           showLabels
           value={value}
           onChange={handleNavChange}
-          sx={{ backgroundColor: "#333", color: "#fff" }}
+          sx={{ backgroundColor: "transparent", color: "#fff", borderTop: "1px solid rgba(255,255,255,0.3)",}}
         >
           <BottomNavigationAction
             value="friends"
@@ -199,7 +199,7 @@ export default function MobileNavigation({
               zIndex: 1500,
               display: "flex",
               flexDirection: "column",
-              borderRadius: 2,
+              borderRadius: 4,
               border: "2px solid #fff",
               overflow: "hidden",
             }}

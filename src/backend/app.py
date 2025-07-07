@@ -4,18 +4,19 @@ from flask_cors import CORS
 import firebase_admin
 from firebase_admin import credentials, initialize_app, firestore
 import os
-
 # Initialize db as None initially
 db = None
 
 # --- CRITICAL: Use relative imports for blueprints ---
 # These imports assume app.py is part of the 'backend' package.
 # This requires src/backend/__init__.py to exist.
-from .survey_routes import survey_bp
-from .groups_routes import groups_bp
-from .communities_routes import communities_bp
-from src.backend.groups import grouping_bp
-from .ai_routes import ai_bp
+# from .survey_routes import survey_bp
+# from .groups_routes import groups_bp
+# from .communities_routes import communities_bp
+# from .groups import grouping_bp
+# from .ai_routes import ai_bp
+from .friends.routes import friends_bp
+
 # --- END relative imports ---
 
 app = Flask(__name__)
@@ -49,10 +50,11 @@ else:
 
 
 # Register blueprints
-app.register_blueprint(survey_bp, url_prefix='/')
-app.register_blueprint(grouping_bp, url_prefix='/groups')
-app.register_blueprint(communities_bp, url_prefix='/communities')
-app.register_blueprint(ai_bp, url_prefix='/api')
+# app.register_blueprint(survey_bp, url_prefix='/')
+# app.register_blueprint(grouping_bp, url_prefix='/groups')
+# app.register_blueprint(communities_bp, url_prefix='/communities')
+app.register_blueprint(friends_bp, url_prefix="/api/friends")
+# app.register_blueprint(ai_bp, url_prefix='/api')
 
 @app.route('/')
 def home():
@@ -72,4 +74,4 @@ def track_data():
 if __name__ == '__main__':
     # When app.py is run directly (e.g., via `python -m src.backend.app`),
     # this block will execute and start the Flask development server.
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=8000)

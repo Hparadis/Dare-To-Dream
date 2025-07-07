@@ -3,7 +3,15 @@ import { Container, Paper, Grid, Typography, Button, Divider, CircularProgress }
 import CustomTextField from "./CustomTextField";
 import tracker from "../tracker";
 import { useNavigate } from "react-router-dom";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { auth , db } from "../config/firebase"; // ✅ correct
+import { useUser } from "../context/UserContext";
+import { doc, setDoc } from "firebase/firestore";
+
+
+
 export default function SignupPage() {
+  const { setUserName, setUserDescription } = useUser();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     firstName: "",
@@ -18,22 +26,58 @@ export default function SignupPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
+    setError("");
+  
+    const { firstName, lastName, email, password } = formData;
+  
+    if (!firstName || !lastName || !email || !password) {
+      setError("Please fill out all required fields.");
       setLoading(false);
-      // Validate that all required fields are filled
-      if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
-        setError("Please fill out all required fields.");
-      } else {
-        setError("");
-        console.log("Form submitted", formData);
-        // After successful submission, navigate to the Survey page
-        navigate("/survey");
+      return;
+    }
+  
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      console.log("User created:", userCredential.user);
+
+      // ✅ Save profile info in Firestore
+      const userDocRef = doc(db, "Surveys", userCredential.user.uid);
+      await setDoc(userDocRef, {
+        name: firstName,
+        description: "", // You can optionally collect this during signup
+        createdAt: new Date().toISOString(),
+      }, { merge: true });
+
+      // ✅ Set user info in context
+      setUserName(firstName);
+      setUserDescription("");
+
+      navigate("/survey");
+    } catch (error) {
+      console.error("Sign-up error:", error);
+  
+      switch (error.code) {
+        case "auth/email-already-in-use":
+          setError("This email is already in use.");
+          break;
+        case "auth/invalid-email":
+          setError("Invalid email address.");
+          break;
+        case "auth/weak-password":
+          setError("Password should be at least 6 characters.");
+          break;
+        default:
+          setError("Sign-up failed. " + error.message);
+          break;
       }
-    }, 1500);
+    } finally {
+      setLoading(false);
+    }
   };
+  
   useEffect(() => {
     // Track when this page is viewed
     tracker.trackEvent("page_view", { page: "Signup" });
@@ -43,6 +87,7 @@ export default function SignupPage() {
     tracker.trackEvent("user_login", { success: isSuccess });
     // Add your login logic here...
   };
+  
   return (
     <Container maxWidth="sm" sx={{ mt: 8, display: "flex", flexDirection: "column", alignItems: "center" }}>
       <Paper
@@ -141,7 +186,7 @@ export default function SignupPage() {
               "&:hover": { backgroundColor: "rgba(255, 255, 255, 0.2)" },
             }}
           >
-            Sign Up with Google
+          Google
           </Button>
         </Grid>
       </Paper>

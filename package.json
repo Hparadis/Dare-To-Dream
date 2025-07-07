@@ -28,7 +28,7 @@
     "cors": "^2.8.5",
     "dayjs": "^1.11.13",
     "express": "^5.1.0",
-    "firebase": "^11.7.1",
+    "firebase": "^11.10.0",
     "framer-motion": "^12.12.1",
     "lucide-react": "^0.510.0",
     "react": "^19.1.0",
