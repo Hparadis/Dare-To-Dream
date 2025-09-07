@@ -1,14 +1,14 @@
-# src/backend/friends/firestore.py
-from firebase_admin import firestore
+from google.cloud import firestore
 
-def get_all_users_except(db, current_user_id):
-    users_ref = db.collection("Surveys")
-    users = users_ref.stream()
-    others = []
-    for user in users:
-        data = user.to_dict()
-        # Add document ID as userId field in data dict:
-        data["userId"] = user.id
-        if data["userId"] != current_user_id:
-            others.append(data)
-    return others
+db = firestore.Client()
+
+def get_similar_users(current_user_id, problem, cause, limit=3):
+    surveys_ref = db.collection("Surveys")
+    query = surveys_ref \
+        .where("problem", "==", problem) \
+        .where("cause", "==", cause) \
+        .where("userId", "!=", current_user_id) \
+        .limit(limit)
+
+    results = query.stream()
+    return [doc.to_dict() for doc in results]

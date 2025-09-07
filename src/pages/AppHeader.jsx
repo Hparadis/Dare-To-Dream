@@ -226,6 +226,9 @@ export default function AppHeader({ isAnonymous, onAvatarChange }) {
                   Emotional Spectrum
                 </MenuItem>
                 <MenuItem onClick={handleOpenSettings}>Settings</MenuItem>
+                <MenuItem onClick={handleOpenEmotionalSpectrum}>
+                  Points Board
+                </MenuItem>
               </Menu>
             </Box>
           </Toolbar>

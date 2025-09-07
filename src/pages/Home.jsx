@@ -1,4 +1,5 @@
 // src/pages/Home.jsx
+import { auth } from "../config/firebase"; 
 import React, { useState, useEffect } from "react";
 import {
   useTheme,
@@ -26,19 +27,23 @@ import MotivationalContent from "./MotivationalContent";
 import MobileNavigation from "./MobileNavigation";
 import MobileMemberListModal from "./MobileMemberListModal";
 // --- CRITICAL IMPORT PATH FIX HERE ---
-import CreateGroupCommunityModal from "../components/CreateGroupCommunityModal";
+import CreateGroupCommunityModal from "./CreateGroupCommunityModal";
 import InboxIcon from "@mui/icons-material/Inbox";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import LightbulbIcon from "@mui/icons-material/Lightbulb";
 import PostCreator from "./PostCreator";
 import tracker from "../tracker";
-import { fetchGroups, fetchCommunities, getInitialFriends } from '../api';
+import { fetchGroups, fetchCommunities } from '../api';
 import { useNavigate, useLocation } from "react-router-dom";
 import { createGroup, joinGroup, createCommunity, joinCommunity } from '../api/firebaseApi';
+import { inviteFriend as sendFriendInvitation ,getInitialFriends} from "../services/friends";
+import { useUser } from "../context/UserContext";
+
+
 
 // --- SharedOverlayContent component (no changes needed here) ---
-const SharedOverlayContent = ({ title, items, onItemClick, emptyMessage, type }) => (
+const SharedOverlayContent = ({ title, items, onItemClick, emptyMessage, type, inviteStatus = {} }) => (
   <Box>
     <Typography variant="h5" sx={{ color: "#fff", marginBottom: '1rem', marginTop: 0, fontWeight: 'bold' }}>
       {title}
@@ -46,58 +51,196 @@ const SharedOverlayContent = ({ title, items, onItemClick, emptyMessage, type })
     {items.length === 0 ? (
       <Box sx={{ color: "red", p: 1, textAlign: 'center' }}>{emptyMessage}</Box>
     ) : (
-      items.map((item, index) => (
-        <Box
-          key={item.id ?? item.userId ?? item.groupId ?? item.communityId ?? `item-${index}`}
-          sx={{
-            p: 2,
-            backgroundColor: "#444",
-            mb: 1,
-            borderRadius: 2,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 2,
-            "&:hover": { backgroundColor: "#555" }
-          }}
-        >
-          {type === "friends" && (
-            <Avatar src={item.profileImage || '/default-avatar.jpg'} sx={{ width: 56, height: 56 }}>
-              {item.name ? item.name[0]?.toUpperCase() : 'U'}
-            </Avatar>
-          )}
-          <Box sx={{ flexGrow: 1 }}>
-            <Typography variant="h6" sx={{ color: "#fff" }}>{item.name}</Typography>
-            {type === "friends" && item.description && (
-              <Typography variant="body2" sx={{ color: "#ccc" }}>{item.description}</Typography>
-            )}
-            {(type === "groups" || type === "communities") && item.memberCount !== undefined && (
-              <Typography variant="body2" sx={{ color: "#ccc" }}>Members: {item.memberCount}</Typography>
-            )}
-          </Box>
-          <Button
-            variant="contained"
-            size="small"
-            onClick={() => onItemClick(item)}
+      items.map((item, index) => {
+        const status = inviteStatus[item.userId] || 'idle';
+
+        let buttonText = type === "friends" ? "Invite" : "Join";
+        let disabled = false;
+
+        if (type === "friends") {
+          if (status === 'loading') buttonText = "Inviting...";
+          else if (status === 'invited') buttonText = "Invited";
+          else if (status === 'error') buttonText = "Retry Invite";
+
+          disabled = (status === 'loading' || status === 'invited');
+        }
+        
+
+        return (
+          <Box
+            key={item.id ?? item.userId ?? item.groupId ?? item.communityId ?? `item-${index}`}
             sx={{
-              backgroundColor: '#2196f3',
-              '&:hover': { backgroundColor: '#1976d2' },
-              color: '#fff',
-              borderRadius: 1,
-              px: 2,
-              py: 1
+              p: 2,
+              backgroundColor: "#444",
+              mb: 1,
+              borderRadius: 2,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              "&:hover": { backgroundColor: "#555" }
             }}
           >
-            {type === "friends" ? "Invite" : "Join"}
-          </Button>
-        </Box>
-      ))
+            {type === "friends" && (
+              <Avatar src={item.profileImage || '/default-avatar.jpg'} sx={{ width: 56, height: 56 }}>
+                {item.name ? item.name[0]?.toUpperCase() : 'U'}
+              </Avatar>
+            )}
+            <Box sx={{ flexGrow: 1 }}>
+              <Typography variant="h6" sx={{ color: "#fff" }}>{item.name}</Typography>
+              {type === "friends" && item.description && (
+                <Typography variant="body2" sx={{ color: "#ccc" }}>{item.description}</Typography>
+              )}
+              {(type === "groups" || type === "communities") && item.memberCount !== undefined && (
+                <Typography variant="body2" sx={{ color: "#ccc" }}>Members: {item.memberCount}</Typography>
+              )}
+            </Box>
+            <Button
+              variant="contained"
+              size="small"
+              disabled={status === 'loading' || status === 'invited'}
+              onClick={() => onItemClick(item)}
+              sx={{
+                backgroundColor: status === 'invited' ? 'gray' : '#2196f3',
+                '&:hover': {
+                  backgroundColor: status === 'invited' ? 'gray' : '#1976d2',
+                },
+                color: '#fff',
+                borderRadius: 1,
+                px: 2,
+                py: 1,
+              }}
+            >
+              {status === 'loading' ? 'Inviting...' : status === 'invited' ? 'Invited' : 'Invite'}
+            </Button>
+
+
+            {status === 'error' && (
+              <Typography variant="caption" sx={{ color: "red", ml: 2 }}>
+                Failed to send invite.
+              </Typography>
+            )}
+          </Box>
+        );
+      })
     )}
   </Box>
 );
+function InvitationsList({ userId }) {
+  const [invitations, setInvitations] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const loadInvites = async () => {
+      const invites = await fetchInvitations(userId);
+      setInvitations(invites);
+      setLoading(false);
+    };
+    loadInvites();
+  }, [userId]);
+
+  const handleResponse = async (inviteId, accept) => {
+    const endpoint = accept ? 'accept' : 'decline';
+    try {
+      const res = await fetch(`/api/friends/invitations/${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inviteId }),
+      });
+      if (!res.ok) throw new Error(`Error: ${res.status}`);
+      setInvitations((prev) => prev.filter(inv => inv.id !== inviteId));
+    } catch (error) {
+      console.error(`Failed to ${accept ? 'accept' : 'decline'} invitation:`, error);
+    }
+  };
+
+  if (loading) return <div>Loading invitations...</div>;
+
+  if (invitations.length === 0) return <div>No pending invitations</div>;
+ 
+  return (
+    <div>
+      <h3>Pending Invitations</h3>
+      {invitations.map(invite => (
+        <div key={invite.id} style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#eee', borderRadius: 6 }}>
+          <p>From User: {invite.from}</p>
+          <button onClick={() => handleResponse(invite.id, true)}>Accept</button>
+          <button onClick={() => handleResponse(invite.id, false)}>Decline</button>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 
+const GroupManager = () => {
+  const { userId } = useUser();
+  const [groupName, setGroupName] = useState('');
+  const [groupId, setGroupId] = useState('');
+  const [message, setMessage] = useState('');
+
+  const handleCreate = async () => {
+    try {
+      const res = await createGroup(userId, groupName);
+      setMessage(`✅ Group created with ID: ${res.groupId}`);
+    } catch (err) {
+      setMessage(`❌ Error: ${err.message}`);
+    }
+  };
+
+  const handleJoin = async () => {
+    try {
+      const res = await joinGroup(userId, groupId);
+      setMessage(`✅ Joined group: ${res.message}`);
+    } catch (err) {
+      setMessage(`❌ Error: ${err.message}`);
+    }
+  };
+
+  return (
+    <div style={{ padding: 16, border: '1px solid #ccc', borderRadius: 8 }}>
+      <h2>Groups</h2>
+
+      <div>
+        <input
+          type="text"
+          placeholder="Group name"
+          value={groupName}
+          onChange={(e) => setGroupName(e.target.value)}
+        />
+        <button onClick={handleCreate}>Create Group</button>
+      </div>
+
+      <div style={{ marginTop: 16 }}>
+        <input
+          type="text"
+          placeholder="Group ID to join"
+          value={groupId}
+          onChange={(e) => setGroupId(e.target.value)}
+        />
+        <button onClick={handleJoin}>Join Group</button>
+      </div>
+
+      {message && <p>{message}</p>}
+    </div>
+  );
+};
+const showSnack = (setMsg, setSev, setOpen) => (msg, sev = "error") => {
+  setMsg(msg);
+  setSev(sev);
+  setOpen(true);
+};
 
 export default function Home() {
+  const { userId, userName, isAuthReady } = useUser();
+
+  const navigate = useNavigate();
+
+  const location = useLocation();
+
+  const [friends, setFriends] = useState([]);
+
+  const [inviteStatus, setInviteStatus] = useState({});
+
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
 
@@ -109,7 +252,6 @@ export default function Home() {
   const [posts, setPosts] = useState([]);
   const [groups, setGroups] = useState([]);
   const [communities, setCommunities] = useState([]);
-  const [friends, setFriends] = useState([]);
   const [showGroups, setShowGroups] = useState(false);
   const [showCommunities, setShowCommunities] = useState(false);
   const [showFriends, setShowFriends] = useState(false);
@@ -120,6 +262,114 @@ export default function Home() {
   const [openSuggestionDialog, setOpenSuggestionDialog] = useState(false);
   const [suggestionText, setSuggestionText] = useState("");
   const [isSubmittingSuggestion, setIsSubmittingSuggestion] = useState(false);
+  const [recommendedGroups, setRecommendedGroups] = useState([]);
+
+
+  
+   
+
+  const errorSnack = showSnack(setSnackbarMessage, setSnackbarSeverity, setSnackbarOpen);
+
+  useEffect(() => {
+    if (!isAuthReady) return; // wait for Firebase auth
+    if (!userId) {
+      errorSnack("User ID not found. Please complete the survey.", "warning");
+      return;
+    }
+  
+    (async () => {
+      try {
+        // 🔥 Step 1: Fetch latest survey for user
+        const surveyRes = await fetch(`http://localhost:8000/api/survey?userId=${userId}`);
+        const { surveys = [] } = await surveyRes.json();
+  
+        if (surveys.length === 0) {
+          errorSnack("No survey found for this user.", "warning");
+          return;
+        }
+  
+        // ✅ Get latest survey by createdAt timestamp
+        const latestSurvey = surveys.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+        const { problem, cause } = latestSurvey;
+  
+        // ✅ Step 2: Fetch friends with similarity
+        const [friendsRes, groupsRes, commRes] = await Promise.all([
+          getInitialFriends(userId, problem, cause),
+          fetchGroups(),
+          fetchCommunities()
+        ]);
+  
+        setFriends(friendsRes ?? []);
+        setGroups(groupsRes ?? []);
+        setCommunities(commRes ?? []);
+      } catch (err) {
+        console.error("Initial‑data load error", err);
+        errorSnack(err.message || "Failed loading initial data");
+      }
+    })();
+  }, [isAuthReady, userId]);
+
+  
+  
+  const handleNavChange = async (view) => {
+    console.log("handleNavChange →", view);
+    setShowGroups(false);
+    setShowCommunities(false);
+    setShowFriends(false);
+  
+    try {
+      switch (view) {
+        case "groups":
+          setShowGroups(true);
+          if (groups.length === 0 && recommendedGroups.length === 0) {
+            const fetched = await fetchGroups();
+            const token = await auth.currentUser.getIdToken();
+            const res = await fetch(`http://localhost:8000/groups/user?userId=${userId}`, {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            });
+            const data = await res.json();
+            setGroups(data.joinedGroups || []);
+            setRecommendedGroups(data.recommendedGroups || []);
+          }
+          break;
+
+  
+        case "communities":
+          setShowCommunities(true);
+          if (communities.length === 0) setCommunities(await fetchCommunities());
+          break;
+  
+        case "friends":
+          setShowFriends(true);
+          if (friends.length === 0) {
+            // Refetch survey for dynamic filtering
+            const surveyRes = await fetch(`http://localhost:8000/api/survey?userId=${userId}`);
+            const { surveys = [] } = await surveyRes.json();
+            const latest = surveys.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+            const { problem, cause } = latest;
+  
+            const f = await getInitialFriends(userId, problem, cause);
+            setFriends(f);
+            if (f.length === 0)
+              errorSnack("No friend suggestions found yet.", "info");
+          }
+          break;
+  
+        default:
+          break;
+      }
+    } catch (err) {
+      console.error(`Error fetching ${view}`, err);
+      errorSnack(`Error loading ${view}: ${err.message}`);
+    }
+  };
+  
+  useEffect(() => {
+    if (location.state?.fromSurvey) handleNavChange("groups");
+  }, [location.state?.fromSurvey]);
+  
 
   const handleSuggestClick = () => {
     setOpenSuggestionDialog(true);
@@ -174,69 +424,7 @@ export default function Home() {
     }
   };
 
-
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  const handleNavChange = async (view) => {
-    if (process.env.NODE_ENV === 'development') console.log("handleNavChange:", view);
-    setShowGroups(false);
-    setShowCommunities(false);
-    setShowFriends(false);
-
-    if (view === "groups") {
-      try {
-        const fetchedGroups = await fetchGroups();
-        setGroups(fetchedGroups || []);
-      } catch (error) {
-        console.error("Error fetching groups in handleNavChange:", error);
-        setGroups([]);
-        setSnackbarMessage(`Error loading groups: ${error.message}`);
-        setSnackbarSeverity("error");
-        setSnackbarOpen(true);
-      }
-      setShowGroups(true);
-    } else if (view === "communities") {
-      try {
-        const fetchedCommunities = await fetchCommunities();
-        setCommunities(fetchedCommunities || []);
-      } catch (error) {
-        console.error("Error fetching communities in handleNavChange:", error);
-        setCommunities([]);
-        setSnackbarMessage(`Error loading communities: ${error.message}`);
-        setSnackbarSeverity("error");
-        setSnackbarOpen(true);
-      }
-      setShowCommunities(true);
-    } else if (view === "friends") {
-      const currentUserId = localStorage.getItem("userId");
-      if (currentUserId) {
-        try {
-          const similarFriends = await getInitialFriends(currentUserId);
-          console.log("Fetched similar friends (full profiles):", similarFriends);
-          setFriends(similarFriends || []);
-          if (similarFriends.length === 0) {
-            setSnackbarMessage("No friend suggestions found for you yet.");
-            setSnackbarSeverity("info");
-            setSnackbarOpen(true);
-          }
-        } catch (error) {
-          console.error("Error fetching friends in handleNavChange:", error);
-          setFriends([]);
-          setSnackbarMessage(`Error loading friends: ${error.message}`);
-          setSnackbarSeverity("error");
-          setSnackbarOpen(true);
-        }
-      } else {
-        setFriends([]);
-        setSnackbarMessage("User ID not found. Cannot fetch friends.");
-        setSnackbarSeverity("warning");
-        setSnackbarOpen(true);
-      }
-      setShowFriends(true);
-    }
-    console.log("Overlay should show for:", view);
-  };
+  
 
   const handleCloseOverlay = () => {
     setShowGroups(false);
@@ -262,14 +450,57 @@ export default function Home() {
     console.log("Create Modal Open state set to false. isCreateModalOpen:", false);
   };
   
+  console.log("Friend clicked:", friends);
+  const inviteFriend = async (fromUserId, toUserId, setInviteStatus) => {
+    console.log("Sending invite with:", { fromUserId, toUserId });
   
-  const inviteFriend = (friend) => {
-    setSnackbarMessage(`Inviting ${friend.name} to connect!`);
-    setSnackbarSeverity("success");
-    setSnackbarOpen(true);
-    // Add actual invite logic here
+    setInviteStatus(prev => ({ ...prev, [toUserId]: 'loading' }));
+  
+    try {
+      const response = await fetch('http://localhost:8000/api/friends/invite', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ fromUserId, toUserId }),
+      });
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+  
+      setInviteStatus(prev => ({ ...prev, [toUserId]: 'invited' }));
+    } catch (error) {
+      console.error("Error sending invitation:", error);
+      setInviteStatus(prev => ({ ...prev, [toUserId]: 'error' }));
+    }
   };
-
+  
+  const fetchInvitations = async (userId) => {
+    try {
+      const res = await fetch(`/api/friends/invitations?userId=${userId}`);
+      if (!res.ok) throw new Error(`Error: ${res.status}`);
+      const data = await res.json();
+      return data.invitations || [];
+    } catch (error) {
+      console.error("Failed to fetch invitations:", error);
+      return [];
+    }
+  };
+  const handleInvite = async (friend) => {
+    const toUserId = friend.userId;
+    const fromUserId = userId;
+  
+    if (!toUserId || !fromUserId) return;
+  
+    try {
+      await inviteFriend(fromUserId, toUserId, setInviteStatus);
+    } catch (err) {
+      console.error("Invite failed", err);
+    }
+  };
+        
+  
   const handleNewPost = (newPost) => {
     setPosts((prev) => [newPost, ...prev]);
     console.log("Post created:", newPost);
@@ -281,6 +512,7 @@ export default function Home() {
     handleCloseOverlay();
   };
   const useUserId = () => localStorage.getItem("userId");
+
 
   useEffect(() => {
     const getAllData = async () => {
@@ -306,11 +538,7 @@ export default function Home() {
     getAllData();
   }, []);
 
-  useEffect(() => {
-    if (location.state?.fromSurvey) {
-      handleNavChange("groups");
-    }
-  }, [location.state?.fromSurvey]);
+
 
   console.log("Home render", { showGroups, showCommunities, showFriends, isCreateModalOpen });
 
@@ -318,13 +546,19 @@ export default function Home() {
     const userId = useUserId();
     if (userId && groupName) {
       try {
+        await fetch('/api/groups/create', {
+          method: 'POST',
+          body: JSON.stringify({ userId, name: "Creators Club" }),
+          headers: { 'Content-Type': 'application/json' }
+        });
         console.log("Attempting to create group:", { groupName, description, userId });
         await createGroup(groupName, description, userId);
         setSnackbarMessage("Group created successfully!");
         setSnackbarSeverity("success");
         setSnackbarOpen(true);
         setIsCreateModalOpen(false);
-
+        
+        
         const updatedGroups = await fetchGroups();
         console.log("Groups after creation and refresh:", updatedGroups);
         setGroups(updatedGroups || []);
@@ -336,7 +570,6 @@ export default function Home() {
       }
     }
   };
-
   const handleCreateCommunity = async (communityName, description) => {
     const userId = useUserId();
     if (userId && communityName) {
@@ -363,6 +596,11 @@ export default function Home() {
     const userId = useUserId();
     if (userId && groupId) {
       try {
+        await fetch('/api/groups/join', {
+          method: 'POST',
+          body: JSON.stringify({ userId, groupId }),
+          headers: { 'Content-Type': 'application/json' }
+        });
         await joinGroup(userId, groupId);
         setJoinedGroup(true);
         const updatedGroups = await fetchGroups();
@@ -414,7 +652,9 @@ export default function Home() {
     }
     setSnackbarOpen(false);
   };
-
+  
+  
+  
   return (
     <Container
        data-testid="home-page"
@@ -502,12 +742,12 @@ export default function Home() {
           )}
           {showFriends && (
             <SharedOverlayContent
-              title="Discover Friends"
-              items={friends}
-              onItemClick={(friend) => inviteFriend(friend)}
-              emptyMessage="No friend suggestions at this time."
-              type="friends"
-            />
+            title="Suggested Friends"
+            items={friends}
+            onItemClick={handleInvite}
+            type="friends"
+            inviteStatus={inviteStatus}
+          />          
           )}
         </Box>
       </Modal>

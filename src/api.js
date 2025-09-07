@@ -1,4 +1,7 @@
+// src/api.js
 import { API_ROUTES } from "./routes";
+import { auth } from "./config/firebase";
+
 
 const BASE_URL =
   import.meta.env.MODE === "development"
@@ -53,14 +56,32 @@ export const getInitialFriends = async (userId) => {
 
 
 export const fetchGroups = async () => {
-  // const response = await fetch(`${BASE_URL}${API_ROUTES.groups}`);
-  // const data = await handleApiResponse(response);
+  const user = auth.currentUser;
+  if (!user) throw new Error("User not logged in");
+
+  const token = await user.getIdToken();
+
+  const res = await fetch("http://localhost:8000/api/groups/recommend", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    console.error("fetchGroups failed →", errText);
+    throw new Error("Failed to fetch recommended groups");
+  }
+
+  const data = await res.json();
+  console.log("Fetched groups from backend →", data);
   return data.groups || [];
 };
 
+
 export const fetchCommunities = async () => {
-  // const response = await fetch(`${BASE_URL}${API_ROUTES.communities}`);
-  // const data = await handleApiResponse(response);
+  const response = await fetch(`${BASE_URL}${API_ROUTES.communities}`);
+  const data = await handleApiResponse(response);
   return data.communities || [];
 };
 
@@ -85,17 +106,50 @@ export const moderateContent = async (text) => {
   return data.moderation_result;
 };
 
-export const sendMessage = async (messagePayload) => {
-  const response = await fetch(`${BASE_URL}${API_ROUTES.sendMessage}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(messagePayload),
-  });
-  return await handleApiResponse(response);
-};
+export async function sendMessage(conversationId, { senderId, receiverId, content, timestamp }) {
+  const res = await fetch(
+    `${BASE_URL}/api/friends/chats/${conversationId}/send`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: content,
+        senderId,
+        receiverId,
+        timestamp
+      })
+    }
+  );
+  return await handleApiResponse(res);
+}
+
 
 export const getChatMessages = async (user1Id, user2Id) => {
-  const response = await fetch(`${BASE_URL}${API_ROUTES.getMessages(user1Id, user2Id)}`);
+  const conversationId = conversationIdFor(user1Id, user2Id);
+  const response = await fetch(
+    `${BASE_URL}/api/friends/chats/${conversationId}/messages`
+  );
   const data = await handleApiResponse(response);
   return data.messages || [];
 };
+
+
+export const getSuggestedFriends = async (userId) => {
+  const response = await fetch(`${BASE_URL}${API_ROUTES.suggestedFriend}?userId=${userId}`);
+  const data = await handleApiResponse(response);
+  return data.suggested || [];
+};
+export const sendFriendInvitation = async (fromUserId, toUserId) => {
+  const response = await fetch(`/api/friends/invite`, {
+    method: 'POST',
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ fromUserId, toUserId })
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to send invitation");
+  }
+  return await response.json();
+};
+export const conversationIdFor = (a, b) => [a, b].sort().join('_');
+

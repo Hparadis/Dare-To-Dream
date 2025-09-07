@@ -12,13 +12,20 @@ import {
   Select,
   MenuItem,
   IconButton,
-  Box
+  Box,
+  Typography,
+  Chip,
+  List,
+  ListItem,
+  ListItemText
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
+import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 
-// Custom styled Dialog (keep this as is)
+
+// Custom styled Dialog
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiPaper-root": {
     backgroundColor: "rgba(51,51,51,0.9)",
@@ -27,75 +34,91 @@ const StyledDialog = styled(Dialog)(({ theme }) => ({
     color: "#fff",
     borderRadius: theme.spacing(2),
     padding: theme.spacing(2),
-    maxWidth: 500,
+    maxWidth: 600,
     width: "90%",
   },
 }));
 
 export default function CreateGroupCommunityModal({ isOpen, onClose }) {
-  const [type, setType] = useState("group");
-  const [suggestion, setSuggestion] = useState(""); // This will be the group/community name
-  const [members, setMembers] = useState([""]);
+  const [step, setStep] = useState(1);
+  const [type, setType] = useState(""); // group or community
+  const [visibility, setVisibility] = useState(""); // public/private
+  const [maxMembers, setMaxMembers] = useState(10); // for private
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [invited, setInvited] = useState([]);
 
-  const handleAddMemberField = () => {
-    setMembers([...members, ""]);
+  // Dummy search function (replace with API)
+  const handleSearch = () => {
+    // Example: search results filtered by searchTerm
+    const dummyUsers = [
+      { id: "1", name: "Alice" },
+      { id: "2", name: "Bob" },
+      { id: "3", name: "Charlie" }
+    ];
+    const results = dummyUsers.filter(u =>
+      u.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setSearchResults(results);
   };
 
-  const handleMemberChange = (index, value) => {
-    const newMembers = [...members];
-    newMembers[index] = value;
-    setMembers(newMembers);
+  const handleAddMember = (user) => {
+    if (!invited.some(u => u.id === user.id) && invited.length < 20) {
+      setInvited([...invited, user]);
+    }
   };
 
-  // --- IMPORTANT: Update the handleSubmit function ---
-  const handleSubmit = async () => { // Make it async to use await
+  const handleRemoveInvite = (id) => {
+    setInvited(invited.filter(u => u.id !== id));
+  };
+
+  const handleSubmit = async () => {
     const payload = {
       type,
-      suggestion,
-      members: members.filter(email => email.trim() !== ""), // Filter out empty emails
+      visibility,
+      maxMembers: visibility === "private" ? maxMembers : invited.length,
+      name,
+      description,
+      invitedMembers: invited.map(u => u.id)
     };
-    console.log("Submitting payload to backend:", payload);
+    console.log("Submitting:", payload);
 
     try {
-      // Send a POST request to your Flask backend's /groups/create endpoint
-      const response = await fetch('http://127.0.0.1:5000/groups/create', { // Use full URL for development
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // If you implement authentication later, you'd add 'Authorization' header here
-        },
-        body: JSON.stringify(payload), // Convert the JavaScript object to a JSON string
+      const response = await fetch("http://127.0.0.1:5000/groups/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
       });
-
-      const result = await response.json(); // Parse the JSON response from the backend
-
-      if (response.ok) { // Check if the HTTP status code is 2xx (success)
-        console.log("Group/Community created successfully:", result);
-        alert(result.message); // Show a success message to the user
-        onClose(); // Close the modal
-
-        // Reset form states for the next use
-        setType("group");
-        setSuggestion("");
-        setMembers([""]);
+      const result = await response.json();
+      if (response.ok) {
+        alert(result.message || `${type} created successfully!`);
+        onClose();
+        // Reset
+        setStep(1);
+        setType("");
+        setVisibility("");
+        setMaxMembers(10);
+        setName("");
+        setDescription("");
+        setSearchTerm("");
+        setSearchResults([]);
+        setInvited([]);
       } else {
-        // Handle backend errors
-        console.error("Error creating group/community:", result.message);
-        alert(`Failed to create ${type}: ${result.message || 'Unknown error'}`);
+        alert(result.message || "Error creating group/community");
       }
     } catch (error) {
-      // Handle network errors or issues with the fetch request itself
-      console.error("Network or API call error:", error);
-      alert("An unexpected error occurred. Please try again.");
+      console.error(error);
+      alert("Network or server error.");
     }
   };
 
   return (
     <StyledDialog open={isOpen} onClose={onClose}>
-      {/* Header with title and close button */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <DialogTitle sx={{ m: 0, p: 0 }}>
-          Create {type === "group" ? "Group" : "Community"}
+          Create {type || "Group/Community"}
         </DialogTitle>
         <IconButton onClick={onClose} sx={{ color: "#fff" }}>
           <CloseIcon />
@@ -103,84 +126,144 @@ export default function CreateGroupCommunityModal({ isOpen, onClose }) {
       </Box>
 
       <DialogContent dividers>
-        {/* Input field for Group/Community Name */}
-        <TextField
-          fullWidth
-          variant="outlined"
-          label={type === "group" ? "Group Name" : "Community Name"}
-          value={suggestion}
-          onChange={(e) => setSuggestion(e.target.value)}
-          sx={{
-            mb: 2,
-            "& .MuiOutlinedInput-root": {
-              "& fieldset": { borderColor: "#33" },
-              color: "#fff"
-            },
-            "& .MuiInputLabel-root": { color: "#fff" }
-          }}
-        />
+        {/* Step 1: Choose Type */}
+        {step === 1 && (
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel>Select Type</InputLabel>
+            <Select
+              value={type}
+              onChange={(e) => { setType(e.target.value); setStep(2); }}
+            >
+              <MenuItem value="group">Group</MenuItem>
+              <MenuItem value="community">Community</MenuItem>
+            </Select>
+          </FormControl>
+        )}
 
-        {/* Select dropdown to choose type: Group or Community */}
-        <FormControl fullWidth sx={{ mb: 2 }}>
-          <InputLabel sx={{ color: "#fff" }}>Select Type</InputLabel>
-          <Select
-            value={type}
-            label="Select Type"
-            onChange={(e) => setType(e.target.value)}
-            sx={{
-              color: "#fff",
-              "& .MuiOutlinedInput-notchedOutline": { borderColor: "#33" }
-            }}
-          >
-            <MenuItem value="group">Group</MenuItem>
-            <MenuItem value="community">Community</MenuItem>
-          </Select>
-        </FormControl>
+        {/* Step 2: Visibility & Rules */}
+        {step === 2 && (
+          <>
+            <Typography sx={{ mb: 1 }}>Rules & Visibility:</Typography>
+            {type === "group" && (
+              <>
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  Max 20 members. Private groups can specify max members.
+                </Typography>
+                <FormControl fullWidth sx={{ mb: 2 }}>
+                  <InputLabel>Visibility</InputLabel>
+                  <Select
+                    value={visibility}
+                    onChange={(e) => setVisibility(e.target.value)}
+                  >
+                    <MenuItem value="public">Public</MenuItem>
+                    <MenuItem value="private">Private</MenuItem>
+                  </Select>
+                </FormControl>
+                {visibility === "private" && (
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Max Members"
+                    value={maxMembers}
+                    onChange={(e) => setMaxMembers(parseInt(e.target.value))}
+                    sx={{ mb: 2 }}
+                  />
+                )}
+              </>
+            )}
+            {type === "community" && (
+              <>
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  Communities are usually public, max 20 members per joinable session.
+                </Typography>
+                <TextField
+                  fullWidth
+                  label="Visibility"
+                  value="public"
+                  disabled
+                  sx={{ mb: 2 }}
+                />
+              </>
+            )}
+            <Button variant="contained" onClick={() => setStep(3)}>Next</Button>
+          </>
+        )}
 
-        {/* Dynamic input fields for member emails */}
-        {members.map((member, index) => (
-          <Box key={index} sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+        {/* Step 3: Name + Description */}
+        {step === 3 && (
+          <>
             <TextField
               fullWidth
-              variant="outlined"
-              label={`Invite Email ${index + 1}`}
-              value={member}
-              onChange={(e) => handleMemberChange(index, e.target.value)}
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  "& fieldset": { borderColor: "#33" },
-                  color: "#fff"
-                },
-                "& .MuiInputLabel-root": { color: "#fff" }
-              }}
+              label={`${type} Name`}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              sx={{ mb: 2 }}
             />
-            {/* Show Add button only on the last member field */}
-            {index === members.length - 1 && (
-              <IconButton
-                onClick={handleAddMemberField}
-                sx={{ color: "#fff", border: "1px solid #33", borderRadius: "50%" }}
-              >
-                <AddCircleIcon />
-              </IconButton>
-            )}
-          </Box>
-        ))}
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              label="Description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              sx={{ mb: 2 }}
+            />
+            <Button variant="contained" onClick={() => setStep(4)}>Next</Button>
+          </>
+        )}
+
+        {/* Step 4: Invite Members */}
+        {step === 4 && (
+          <>
+            <TextField
+              fullWidth
+              label="Search users to invite"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              sx={{ mb: 1 }}
+            />
+            <Button onClick={handleSearch} sx={{ mb: 2 }}>Search</Button>
+            <List sx={{ maxHeight: 150, overflowY: "auto" }}>
+              {searchResults.map((user) => (
+                <ListItem
+                  key={user.id}
+                  secondaryAction={
+                    <IconButton onClick={() => handleAddMember(user)}>
+                      <AddIcon sx={{ color: "#fff" }} />
+                    </IconButton>
+                  }
+                >
+                  <ListItemText primary={user.name} />
+                </ListItem>
+              ))}
+            </List>
+
+            <Typography sx={{ mt: 2 }}>Invited Members:</Typography>
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+              {invited.map((u) => (
+                <Chip
+                  key={u.id}
+                  label={u.name}
+                  onDelete={() => handleRemoveInvite(u.id)}
+                  sx={{ bgcolor: "#33", color: "#fff" }}
+                />
+              ))}
+            </Box>
+          </>
+        )}
       </DialogContent>
 
       <DialogActions>
-        <Button
-          fullWidth
-          variant="contained"
-          onClick={handleSubmit}
-          sx={{
-            backgroundColor: "#2196f3",
-            color: "#fff",
-            "&:hover": { backgroundColor: "#1976d2" },
-            py: 1.5
-          }}
-        >
-          Submit
-        </Button>
+        {step === 4 && (
+          <Button
+            fullWidth
+            variant="contained"
+            onClick={handleSubmit}
+            sx={{ backgroundColor: "#2196f3", color: "#fff", "&:hover": { backgroundColor: "#1976d2" } }}
+          >
+            Create {type}
+          </Button>
+        )}
       </DialogActions>
     </StyledDialog>
   );

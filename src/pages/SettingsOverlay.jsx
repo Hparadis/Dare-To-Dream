@@ -46,6 +46,12 @@ export default function SettingsOverlay({ isOpen, onClose }) {
   const handleCloseTermsAndPolicy = () => {
     setTermsAndPolicyOpen(false);
   };
+  const mockPointsHistory = [
+    { action: "Meditation", points: 15, date: "2025-07-20" },
+    { action: "Helped a friend", points: 20, date: "2025-07-19" },
+    { action: "Finished a book", points: 25, date: "2025-07-18" },
+    { action: "Shared progress", points: 10, date: "2025-07-17" },
+  ];
 
   return (
     <>
@@ -153,6 +159,38 @@ export default function SettingsOverlay({ isOpen, onClose }) {
               </Table>
             </TableContainer>
           </Paper>
+          <Paper sx={{
+          background: "rgba(255,255,255,0.08)",
+          borderRadius: 2,
+          border: "1px solid rgba(255,255,255,0.2)",
+          boxShadow: 'none',
+          p: 2
+        }}>
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>Points Board</Typography>
+          <Divider sx={{ mb: 2, borderColor: '#555' }} />
+
+          <TableContainer>
+            <Table size="small" aria-label="points table">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.3)' }}>Action</TableCell>
+                  <TableCell sx={{ color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.3)' }}>Points</TableCell>
+                  <TableCell sx={{ color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.3)' }}>Date</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {mockPointsHistory.map((entry, index) => (
+                  <TableRow key={index}>
+                    <TableCell sx={{ color: '#ccc', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>{entry.action}</TableCell>
+                    <TableCell sx={{ color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>+{entry.points}</TableCell>
+                    <TableCell sx={{ color: '#aaa', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>{entry.date}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+        
 
         </DialogContent>
       </Dialog>

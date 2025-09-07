@@ -140,7 +140,7 @@ export default function EmotionalSpectrumOverlay({ isOpen, onClose }) {
             alignItems: 'center',
             p: { xs: 1, sm: 2 },
             background: "rgba(255,255,255,0.05)",
-            borderRadius: '50%', // Makes the container itself circular
+            borderRadius: '12', // Makes the container itself circular
             width: isSmallScreen ? 250 : 350, // Fixed width for overall circle size
             height: isSmallScreen ? 250 : 350, // Fixed height to maintain aspect ratio
             mx: 'auto',

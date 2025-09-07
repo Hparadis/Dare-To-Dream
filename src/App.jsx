@@ -21,6 +21,7 @@ import Games from "./pages/Games";
 import Socialize from "./pages/Socialize";
 import { Container } from "@mui/material";
 import tracker from "./tracker";
+import Notifications from './pages/Notifications';
 
 function App() {
   const [initialRoute, setInitialRoute] = useState(null);
@@ -60,6 +61,8 @@ function App() {
           <Route path="/party" element={<Party />} />
           <Route path="/games" element={<Games />} />
           <Route path="/socialize" element={<Socialize />} />
+          <Route path="/notifications" element={<Notifications />} />
+
         </Routes>
       </Container>
     </Router>
