@@ -35,9 +35,9 @@ import MenuIcon from "@mui/icons-material/Menu";
 import SearchIcon from "@mui/icons-material/Search";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
+import { getAcceptedFriends } from "../services/friends";
 
-
-import { getInitialFriends, sendMessage, getChatMessages, moderateContent, fetchGroups, fetchCommunities } from "../api";
+import {  sendMessage, getChatMessages, moderateContent, fetchGroups, fetchCommunities ,getSuggestedFriends} from "../api";
 import { useUser } from "../context/UserContext";
 
 const APP_PRIMARY_BACKGROUND = '#111';
@@ -111,47 +111,25 @@ export default function Friends() {
       if (isAuthReady && userId) {
         try {
           setLoadingFriends(true);
-          const fetchedFriends = await getInitialFriends(userId);
-          setFriends(fetchedFriends || []);
+          const accepted = await getAcceptedFriends(userId);
+          setFriends(accepted || []);
+          if (accepted.length === 0) {
+            setSnackbarMessage("No accepted friends yet.");
+            setSnackbarSeverity("info");
+            setSnackbarOpen(true);
+          }
         } catch (error) {
-          console.error("Friends.jsx: Error fetching friends:", error);
+          console.error("Friends.jsx: Error fetching accepted friends:", error);
           setSnackbarMessage(`Error loading friends: ${error.message}`);
           setSnackbarSeverity("error");
           setSnackbarOpen(true);
         } finally {
           setLoadingFriends(false);
         }
-      } else if (isAuthReady && !userId) {
-        setSnackbarMessage("User ID not found. Please complete survey.");
-        setSnackbarSeverity("warning");
-        setSnackbarOpen(true);
-        setLoadingFriends(false);
       }
     };
     fetchFriendsData();
   }, [userId, isAuthReady]);
-
-  useEffect(() => {
-    const loadGroupsAndCommunities = async () => {
-      if (isAuthReady) {
-        try {
-          setLoadingGroupsAndCommunities(true);
-          const fetchedGroups = await fetchGroups();
-          const fetchedCommunities = await fetchCommunities();
-          setGroups(fetchedGroups || []);
-          setCommunities(fetchedCommunities || []);
-        } catch (error) {
-          console.error("Friends.jsx: Error fetching groups/communities:", error);
-          setSnackbarMessage(`Error loading groups/communities: ${error.message}`);
-          setSnackbarSeverity("error");
-          setSnackbarOpen(true);
-        } finally {
-          setLoadingGroupsAndCommunities(false);
-        }
-      }
-    };
-    loadGroupsAndCommunities();
-  }, [isAuthReady]);
 
   useEffect(() => {
     const fetchMessagesOrSetupAiChat = async () => {
@@ -198,89 +176,65 @@ export default function Friends() {
   };
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim()) {
-        setSnackbarMessage("Message cannot be empty.");
-        setSnackbarSeverity("warning");
-        setSnackbarOpen(true);
-        return;
-    }
-    if (!selectedFriend || !userId || !isAuthReady) {
-      setSnackbarMessage("Cannot send message. No recipient selected or user not ready.");
-      setSnackbarSeverity("warning");
-      setSnackbarOpen(true);
-      return;
-    }
-
+    if (!newMessage.trim()) return;
+  
+    if (!selectedFriend || !userId) return;
+  
     setSendingMessage(true);
-    setSnackbarOpen(false);
-    const messageContent = newMessage.trim();
-
-    if (selectedFriend.userId === AI_USER_ID) {
-        // Handle AI Chat
-        const userMessageToAi = {
-            senderId: userId, // User is sending
-            receiverId: AI_USER_ID, // AI is receiving
-            content: messageContent,
-            timestamp: new Date().toISOString(),
-            senderName: userName || 'You'
-        };
-        setMessages((prevMessages) => [...prevMessages, userMessageToAi]);
-        setNewMessage("");
-        setSendingMessage(false);
-
-        // Simulate AI response
-        setTimeout(() => {
-            const aiResponseMessage = {
-                senderId: AI_USER_ID, // AI is sending
-                receiverId: userId, // User is receiving
-                content: `I've processed your message: "${messageContent}". As your AI assistant, I'm here for a quick chat, to help keep our environment positive, and to remind you about friends or interesting topics. What else is on your mind?`,
-                timestamp: new Date().toISOString(),
-                senderName: AI_USER_PROFILE.name
-            };
-            setMessages((prevMessages) => [...prevMessages, aiResponseMessage]);
-        }, 1200);
-
-    } else {
-        // Handle Human Friend Chat
-        try {
-          let finalMessageContent = messageContent;
-          // AI-powered content moderation if AI is active (even for human-to-human)
-          if (aiActive) {
-            console.log("AI is active, moderating content for human chat...");
-            const moderationResult = await moderateContent(messageContent);
-            if (moderationResult && moderationResult.is_problematic) {
-              setSnackbarMessage(
-                `AI Moderation: ${moderationResult.reason || "Content deemed inappropriate."}`
-              );
-              setSnackbarSeverity("error");
-              setSnackbarOpen(true);
-              setSendingMessage(false);
-              return;
-            }
-            // If moderateContent could return a cleaned version:
-            // finalMessageContent = moderationResult.cleaned_content || messageContent;
-          }
-
-          const messagePayload = {
-            senderId: userId,
-            receiverId: selectedFriend.userId,
-            content: finalMessageContent,
-            timestamp: new Date().toISOString(),
-          };
-
-          await sendMessage(messagePayload);
-          setMessages((prevMessages) => [...prevMessages, { ...messagePayload, senderName: userName || 'You' }]);
-          setNewMessage("");
-        } catch (error) {
-          console.error("Error sending message or during moderation:", error);
-          setSnackbarMessage(`Failed to send message: ${error.message || "An unknown error occurred."}`);
+  
+    let finalMessageContent = newMessage.trim(); // <-- always defined
+  
+    const conversationId = [userId, selectedFriend.userId].sort().join("_");
+  
+    try {
+      // Optional: AI moderation
+      if (aiActive) {
+        const moderationResult = await moderateContent(finalMessageContent);
+        if (moderationResult?.is_problematic) {
+          setSnackbarMessage(
+            `AI Moderation: ${moderationResult.reason || "Content inappropriate"}`
+          );
           setSnackbarSeverity("error");
           setSnackbarOpen(true);
-        } finally {
           setSendingMessage(false);
+          return;
         }
+  
+        // If moderation API cleans text, use that instead
+        if (moderationResult?.cleaned_content) {
+          finalMessageContent = moderationResult.cleaned_content;
+        }
+      }
+  
+      // Build payload
+      const messagePayload = {
+        senderId: userId,
+        receiverId: selectedFriend.userId,
+        content: finalMessageContent, // ✅ now defined properly
+        timestamp: new Date().toISOString(),
+      };
+  
+      // Send to backend
+      await sendMessage(conversationId, messagePayload);
+  
+      // Add locally
+      setMessages((prev) => [
+        ...prev,
+        { ...messagePayload, senderName: userName || "You" },
+      ]);
+  
+      setNewMessage("");
+    } catch (error) {
+      console.error("Error sending message:", error);
+      setSnackbarMessage(`Failed to send message: ${error.message}`);
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
+    } finally {
+      setSendingMessage(false);
     }
   };
+  
+    
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -288,6 +242,7 @@ export default function Friends() {
       handleSendMessage();
     }
   };
+  
 
   const renderChatArea = () => {
     const currentChatPartner = selectedFriend; // Could be human or AI_USER_PROFILE
@@ -370,6 +325,7 @@ export default function Friends() {
                 </Typography>
               ) : (
                 messages.map((msg, index) => (
+                  
                   <Box
                     key={index}
                     sx={{
@@ -780,6 +736,7 @@ export default function Friends() {
         </Box>
 
       </Box>
+      
 
       {isMobile && <ListDrawerComponent />}
 

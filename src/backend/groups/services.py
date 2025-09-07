@@ -1,33 +1,44 @@
 # src/backend/groups/services.py
-from .firestore import get_firestore_db
-from .utils import normalize_id
-from firebase_admin import firestore as admin_firestore
+from .firestore import create_group as create_group_firestore, get_groups_for_user
+from firebase_admin import firestore
+from datetime import datetime
 
-def create_group_logic(data):
-    db = get_firestore_db()
-    
-    group_type = data.get('type')
-    suggestion = data.get('suggestion')
-    members = data.get('members', [])
+db = firestore.client()
 
-    if not group_type or not suggestion:
-        return {"error": "Missing 'type' or 'suggestion'"}, 400
-
-    doc_id = normalize_id(suggestion)
-    doc_ref = db.collection("Groups").document(doc_id)
-
-    if doc_ref.get().exists:
-        return {"error": "Group with that name already exists."}, 409
-
+def create_group_service(name, description, tags, created_by):
     group_data = {
-        "type": group_type,
-        "name": suggestion,
-        "members": members,
-        "createdAt": admin_firestore.SERVER_TIMESTAMP,
+        "name": name,
+        "description": description,
+        "tags": tags,
+        "createdBy": created_by,
+        "members": [created_by],
+        "createdAt": firestore.SERVER_TIMESTAMP,
     }
+    return create_group_firestore(group_data)
 
-    doc_ref.set(group_data)
-    return {
-        "message": f"{group_type.capitalize()} '{suggestion}' created successfully!",
-        "groupId": doc_id
-    }, 201
+def fetch_groups_for_user_service(user_id):
+    user_doc = db.collection("Users").document(user_id).get()
+    if not user_doc.exists:
+        return []
+
+    user_data = user_doc.to_dict()
+    user_tags = user_data.get("tags", [])  # or from their last survey
+
+    # Get all groups
+    groups_ref = db.collection("Groups").stream()
+
+    matching_groups = []
+    for group in groups_ref:
+        data = group.to_dict()
+        data["id"] = group.id
+
+        # Skip if already a member
+        if user_id in data.get("members", []):
+            continue
+
+        # Check tag overlap
+        if any(tag in user_tags for tag in data.get("tags", [])):
+            matching_groups.append(data)
+
+    return matching_groups
+

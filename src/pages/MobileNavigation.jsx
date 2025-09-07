@@ -30,6 +30,7 @@ import LightbulbIcon from "@mui/icons-material/Lightbulb";
 // import { fetchGroups } from "../api"; // Removed: This import was unused
 import Tooltip from "@mui/material/Tooltip";
 import EditIcon from "@mui/icons-material/Edit";
+import CreateGroupCommunityModal from "./CreateGroupCommunityModal";
 
 // Import Firebase auth and app instance
 import { getAuth } from "firebase/auth";
@@ -72,6 +73,8 @@ export default function MobileNavigation({
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState("success");
+  const [openCreateModal, setOpenCreateModal] = useState(false);
+
 
   const handleNavChange = (event, newValue) => {
     setValue(newValue);
@@ -216,12 +219,17 @@ export default function MobileNavigation({
 
             {/* Create Button */}
             <Tooltip title="Create" placement="left">
-              <IconButton
-                onClick={onCreateClick}
-                sx={{ color: "#fff", borderBottom: "1px solid #fff", borderRadius: 0 }}
-              >
-                <AddIcon />
-              </IconButton>
+            <IconButton
+              onClick={() => setOpenCreateModal(true)}
+              sx={{ color: "#fff", borderBottom: "1px solid #fff", borderRadius: 0 }}
+            >
+              <AddIcon />
+            </IconButton>
+            <CreateGroupCommunityModal
+                  isOpen={openCreateModal}
+                  onClose={() => setOpenCreateModal(false)}
+                />
+
             </Tooltip>
 
             {/* Post Button */}

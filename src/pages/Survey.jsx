@@ -17,8 +17,10 @@ import {
 } from "@mui/material";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import { useNavigate } from "react-router-dom";
-import { useUser } from "../context/UserContext"; // make sure this is at the top of Survey.jsx
-
+import { useUser } from "../context/UserContext"; 
+import { getAuth } from "firebase/auth";
+import { getApp } from 'firebase/app';
+import { getFirestore, doc, setDoc } from 'firebase/firestore'; 
 
 
 const Survey = () => {
@@ -37,7 +39,10 @@ const Survey = () => {
     description: "",
     coping: "",
     support: "",
+    deeperProblem: "",
+    deeperCause: "",
   });
+  
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -46,15 +51,51 @@ const Survey = () => {
   const handleNext = () => setStep((s) => s + 1);
   const handlePrevious = () => setStep((s) => Math.max(0, s - 1));
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      console.log("Submitted:", formData);
+  
+    try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+      const db = getFirestore(getApp());
+  
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+  
+      const token = await user.getIdToken(); // Optional: if using auth protection
+      const userId = user.uid;
+
+      await setDoc(doc(db, "Surveys", user.uid), {
+        userId: user.uid,
+        name: formData.name || `User-${user.uid.slice(0, 4)}`,
+        description: formData.description || "New user",
+        createdAt: new Date().toISOString(),
+        ...formData
+      });
+  
+      const response = await fetch("http://localhost:8000/api/survey/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          // Optional if you're securing routes later:
+          // "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ ...formData, userId }),
+      });
+      // After fetching the current user ID and before sending the POST
+      
+      const result = await response.json();
+      console.log("Submitted:", result);
       navigate("/home");
-    }, 1000);
+    } catch (err) {
+      console.error("Submission failed", err);
+    } finally {
+      setLoading(false);
+    }
   };
+    
   const { userName } = useUser();
   const getStepTitle = (step) => {
     const displayName = userName || "there";
@@ -153,9 +194,6 @@ const Survey = () => {
                       >
                         <MenuItem value="addiction">Addiction</MenuItem>
                         <MenuItem value="depression">Depression</MenuItem>
-                        <MenuItem value="anxiety">Anxiety</MenuItem>
-                        <MenuItem value="ptsd">PTSD</MenuItem>
-                        <MenuItem value="bipolar">Bipolar Disorder</MenuItem>
                       </Select>
                     </FormControl>
                   </Grid>
@@ -180,7 +218,7 @@ const Survey = () => {
                         <MenuItem value="relationship">Relationship</MenuItem>
                         <MenuItem value="society">Society</MenuItem>
                         <MenuItem value="self-inflicted">Self-inflicted</MenuItem>
-                        <MenuItem value="others">Others</MenuItem>
+                        <MenuItem value="others">Other</MenuItem>
                       </Select>
                     </FormControl>
                   </Grid>
