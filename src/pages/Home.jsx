@@ -34,97 +34,18 @@ import EditIcon from "@mui/icons-material/Edit";
 import LightbulbIcon from "@mui/icons-material/Lightbulb";
 import PostCreator from "./PostCreator";
 import tracker from "../tracker";
-import { fetchGroups, fetchCommunities } from '../api';
+import { fetchGroups, fetchCommunities,BASE_URL } from '../api';
 import { useNavigate, useLocation } from "react-router-dom";
 import { createGroup, joinGroup, createCommunity, joinCommunity } from '../api/firebaseApi';
 import { inviteFriend as sendFriendInvitation ,getInitialFriends} from "../services/friends";
 import { useUser } from "../context/UserContext";
+import SharedOverlayContent from "../components/SharedOverlayContent";
 
 
 
-// --- SharedOverlayContent component (no changes needed here) ---
-const SharedOverlayContent = ({ title, items, onItemClick, emptyMessage, type, inviteStatus = {} }) => (
-  <Box>
-    <Typography variant="h5" sx={{ color: "#fff", marginBottom: '1rem', marginTop: 0, fontWeight: 'bold' }}>
-      {title}
-    </Typography>
-    {items.length === 0 ? (
-      <Box sx={{ color: "red", p: 1, textAlign: 'center' }}>{emptyMessage}</Box>
-    ) : (
-      items.map((item, index) => {
-        const status = inviteStatus[item.userId] || 'idle';
-
-        let buttonText = type === "friends" ? "Invite" : "Join";
-        let disabled = false;
-
-        if (type === "friends") {
-          if (status === 'loading') buttonText = "Inviting...";
-          else if (status === 'invited') buttonText = "Invited";
-          else if (status === 'error') buttonText = "Retry Invite";
-
-          disabled = (status === 'loading' || status === 'invited');
-        }
-        
-
-        return (
-          <Box
-            key={item.id ?? item.userId ?? item.groupId ?? item.communityId ?? `item-${index}`}
-            sx={{
-              p: 2,
-              backgroundColor: "#444",
-              mb: 1,
-              borderRadius: 2,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 2,
-              "&:hover": { backgroundColor: "#555" }
-            }}
-          >
-            {type === "friends" && (
-              <Avatar src={item.profileImage || '/default-avatar.jpg'} sx={{ width: 56, height: 56 }}>
-                {item.name ? item.name[0]?.toUpperCase() : 'U'}
-              </Avatar>
-            )}
-            <Box sx={{ flexGrow: 1 }}>
-              <Typography variant="h6" sx={{ color: "#fff" }}>{item.name}</Typography>
-              {type === "friends" && item.description && (
-                <Typography variant="body2" sx={{ color: "#ccc" }}>{item.description}</Typography>
-              )}
-              {(type === "groups" || type === "communities") && item.memberCount !== undefined && (
-                <Typography variant="body2" sx={{ color: "#ccc" }}>Members: {item.memberCount}</Typography>
-              )}
-            </Box>
-            <Button
-              variant="contained"
-              size="small"
-              disabled={status === 'loading' || status === 'invited'}
-              onClick={() => onItemClick(item)}
-              sx={{
-                backgroundColor: status === 'invited' ? 'gray' : '#2196f3',
-                '&:hover': {
-                  backgroundColor: status === 'invited' ? 'gray' : '#1976d2',
-                },
-                color: '#fff',
-                borderRadius: 1,
-                px: 2,
-                py: 1,
-              }}
-            >
-              {status === 'loading' ? 'Inviting...' : status === 'invited' ? 'Invited' : 'Invite'}
-            </Button>
-
-
-            {status === 'error' && (
-              <Typography variant="caption" sx={{ color: "red", ml: 2 }}>
-                Failed to send invite.
-              </Typography>
-            )}
-          </Box>
-        );
-      })
-    )}
-  </Box>
-);
+// const user = auth.currentUser;
+// const token = await user.getIdToken();
+// console.log(token);
 function InvitationsList({ userId }) {
   const [invitations, setInvitations] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
@@ -172,58 +93,58 @@ function InvitationsList({ userId }) {
 }
 
 
-const GroupManager = () => {
-  const { userId } = useUser();
-  const [groupName, setGroupName] = useState('');
-  const [groupId, setGroupId] = useState('');
-  const [message, setMessage] = useState('');
+// const GroupManager = () => {
+//   const { userId } = useUser();
+//   const [groupName, setGroupName] = useState('');
+//   const [groupId, setGroupId] = useState('');
+//   const [message, setMessage] = useState('');
 
-  const handleCreate = async () => {
-    try {
-      const res = await createGroup(userId, groupName);
-      setMessage(`✅ Group created with ID: ${res.groupId}`);
-    } catch (err) {
-      setMessage(`❌ Error: ${err.message}`);
-    }
-  };
+//   const handleCreate = async () => {
+//     try {
+//       const res = await createGroup(userId, groupName);
+//       setMessage(`✅ Group created with ID: ${res.groupId}`);
+//     } catch (err) {
+//       setMessage(`❌ Error: ${err.message}`);
+//     }
+//   };
 
-  const handleJoin = async () => {
-    try {
-      const res = await joinGroup(userId, groupId);
-      setMessage(`✅ Joined group: ${res.message}`);
-    } catch (err) {
-      setMessage(`❌ Error: ${err.message}`);
-    }
-  };
+//   const handleJoin = async () => {
+//     try {
+//       const res = await joinGroup(userId, groupId);
+//       setMessage(`✅ Joined group: ${res.message}`);
+//     } catch (err) {
+//       setMessage(`❌ Error: ${err.message}`);
+//     }
+//   };
 
-  return (
-    <div style={{ padding: 16, border: '1px solid #ccc', borderRadius: 8 }}>
-      <h2>Groups</h2>
+//   return (
+//     <div style={{ padding: 16, border: '1px solid #ccc', borderRadius: 8 }}>
+//       <h2>Groups</h2>
 
-      <div>
-        <input
-          type="text"
-          placeholder="Group name"
-          value={groupName}
-          onChange={(e) => setGroupName(e.target.value)}
-        />
-        <button onClick={handleCreate}>Create Group</button>
-      </div>
+//       <div>
+//         <input
+//           type="text"
+//           placeholder="Group name"
+//           value={groupName}
+//           onChange={(e) => setGroupName(e.target.value)}
+//         />
+//         <button onClick={handleCreate}>Create Group</button>
+//       </div>
 
-      <div style={{ marginTop: 16 }}>
-        <input
-          type="text"
-          placeholder="Group ID to join"
-          value={groupId}
-          onChange={(e) => setGroupId(e.target.value)}
-        />
-        <button onClick={handleJoin}>Join Group</button>
-      </div>
+//       <div style={{ marginTop: 16 }}>
+//         <input
+//           type="text"
+//           placeholder="Group ID to join"
+//           value={groupId}
+//           onChange={(e) => setGroupId(e.target.value)}
+//         />
+//         <button onClick={handleJoin}>Join Group</button>
+//       </div>
 
-      {message && <p>{message}</p>}
-    </div>
-  );
-};
+//       {message && <p>{message}</p>}
+//     </div>
+//   );
+// };
 const showSnack = (setMsg, setSev, setOpen) => (msg, sev = "error") => {
   setMsg(msg);
   setSev(sev);
@@ -263,9 +184,9 @@ export default function Home() {
   const [suggestionText, setSuggestionText] = useState("");
   const [isSubmittingSuggestion, setIsSubmittingSuggestion] = useState(false);
   const [recommendedGroups, setRecommendedGroups] = useState([]);
+  const [recommendedCommunities, setRecommendedCommunities] = useState([]);
 
 
-  
    
 
   const errorSnack = showSnack(setSnackbarMessage, setSnackbarSeverity, setSnackbarOpen);
@@ -312,59 +233,52 @@ export default function Home() {
   
   
   const handleNavChange = async (view) => {
-    console.log("handleNavChange →", view);
     setShowGroups(false);
     setShowCommunities(false);
     setShowFriends(false);
   
-    try {
-      switch (view) {
-        case "groups":
-          setShowGroups(true);
-          if (groups.length === 0 && recommendedGroups.length === 0) {
-            const fetched = await fetchGroups();
-            const token = await auth.currentUser.getIdToken();
-            const res = await fetch(`http://localhost:8000/groups/user?userId=${userId}`, {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            });
-            const data = await res.json();
-            setGroups(data.joinedGroups || []);
-            setRecommendedGroups(data.recommendedGroups || []);
-          }
-          break;
-
+    switch (view) {
+      case "groups":
+        setShowGroups(true);
+        try {
+          const user = auth.currentUser;
+          if (!user) throw new Error("User not logged in");
+          const token = await user.getIdToken();
   
-        case "communities":
-          setShowCommunities(true);
-          if (communities.length === 0) setCommunities(await fetchCommunities());
-          break;
+          // fetch user's groups
+          const res = await fetch(`${BASE_URL}/api/groups/user`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const data = await res.json();
   
-        case "friends":
-          setShowFriends(true);
-          if (friends.length === 0) {
-            // Refetch survey for dynamic filtering
-            const surveyRes = await fetch(`http://localhost:8000/api/survey?userId=${userId}`);
-            const { surveys = [] } = await surveyRes.json();
-            const latest = surveys.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
-            const { problem, cause } = latest;
+          // fetch recommended groups for user
+          // const recRes = await fetch(`${BASE_URL}/api/groups/recommend`, {
+          //   headers: { Authorization: `Bearer ${token}` }
+          // });
+          const recData = await recRes.json();
   
-            const f = await getInitialFriends(userId, problem, cause);
-            setFriends(f);
-            if (f.length === 0)
-              errorSnack("No friend suggestions found yet.", "info");
-          }
-          break;
+          setGroups(Array.isArray(data.groups) ? data.groups : []);
+          setRecommendedGroups(Array.isArray(recData.groups) ? recData.groups : []);
+        } catch (err) {
+          console.error("Error fetching groups", err);
+          errorSnack("Failed to load groups", "error");
+        }
+        break;
   
-        default:
-          break;
-      }
-    } catch (err) {
-      console.error(`Error fetching ${view}`, err);
-      errorSnack(`Error loading ${view}: ${err.message}`);
+      case "communities":
+        setShowCommunities(true);
+        break;
+  
+      case "friends":
+        setShowFriends(true);
+        break;
+  
+      default:
+        break;
     }
   };
+    
+  
   
   useEffect(() => {
     if (location.state?.fromSurvey) handleNavChange("groups");
@@ -515,28 +429,27 @@ export default function Home() {
 
 
   useEffect(() => {
-    const getAllData = async () => {
+    const getInitialData = async () => {
       try {
-        const [fetchedGroups, fetchedCommunities] = await Promise.all([
-          fetchGroups(),
-          fetchCommunities(),
+        const [publicGroupsRes, publicCommunities] = await Promise.all([
+          fetch(`${BASE_URL}/api/groups/all`).then(res => res.json()),
+          fetchCommunities() // your existing function for communities
         ]);
-        
-        setGroups(fetchedGroups || []);
-        setCommunities(fetchedCommunities || []);
+  
+        setGroups(publicGroupsRes.groups || []);
+        setCommunities(publicCommunities || []);
       } catch (error) {
         console.error("Error fetching initial data:", error);
         setGroups([]);
         setCommunities([]);
         setFriends([]);
-        setSnackbarMessage(`Error loading initial data: ${error.message}`);
-        setSnackbarSeverity("error");
-        setSnackbarOpen(true);
+        errorSnack(`Error loading initial data: ${error.message}`);
       }
     };
-
-    getAllData();
+  
+    getInitialData();
   }, []);
+  
 
 
 
@@ -592,31 +505,36 @@ export default function Home() {
       }
     }
   };
-  const handleJoinGroup = async (groupId) => {
-    const userId = useUserId();
-    if (userId && groupId) {
-      try {
-        await fetch('/api/groups/join', {
-          method: 'POST',
-          body: JSON.stringify({ userId, groupId }),
-          headers: { 'Content-Type': 'application/json' }
-        });
-        await joinGroup(userId, groupId);
-        setJoinedGroup(true);
-        const updatedGroups = await fetchGroups();
-        setGroups(updatedGroups || []);
-        setSnackbarMessage("Successfully joined group!");
-        setSnackbarSeverity("success");
-        setSnackbarOpen(true);
-         if (showGroups) {
-            setGroups(refreshedGroups || []);
-        }
-      } catch (error) {
-        console.error("Error joining group:", error);
-        setSnackbarMessage(`Failed to join group: ${error.message}`);
-        setSnackbarSeverity("error");
-        setSnackbarOpen(true);
-      }
+  const handleJoinGroup = async (group) => {
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error("User not logged in");
+      const token = await user.getIdToken();
+  
+      const res = await fetch(`${BASE_URL}/api/groups/join`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ groupId: group.id }),
+      });
+  
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to join group");
+  
+      // Add current user to local state members for immediate UI update
+      const updatedGroup = {
+        ...group,
+        memberUserIds: [...(group.memberUserIds || []), user.uid],
+        memberCount: (group.memberCount || 0) + 1,
+      };
+  
+      // Navigate to Group.jsx with updated group info
+      navigate("/group", { state: { group: updatedGroup } });
+    } catch (err) {
+      console.error("Join group error:", err);
+      alert(err.message || "Failed to join group");
     }
   };
 
@@ -654,7 +572,9 @@ export default function Home() {
   };
   
   
-  
+  console.log("groups:", groups);
+  console.log("communities:", communities);
+
   return (
     <Container
        data-testid="home-page"

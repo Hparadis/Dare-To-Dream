@@ -1,46 +1,32 @@
 # src/backend/utils/auth.py
-import firebase_admin
 from functools import wraps
 from flask import request, jsonify
-from firebase_admin import auth
-
-
-def decode_firebase_token(id_token: str) -> dict:
-    return auth.verify_id_token(id_token)
+from firebase_admin import auth as firebase_auth
 
 def require_auth(f):
     @wraps(f)
-    def decorated(*args, **kwargs):
-        auth_header = request.headers.get("Authorization")
-        if not auth_header:
+    def wrapper(*args, **kwargs):
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
             return jsonify({"error": "Authorization required"}), 401
-        # TODO: validate token properly here
+        token = auth_header.split(" ", 1)[1]
+        try:
+            decoded = firebase_auth.verify_id_token(token)
+            # attach for routes:
+            request.user = decoded            # full decoded token
+            request.user_id = decoded.get("uid")
+        except Exception as e:
+            return jsonify({"error": "Invalid token", "details": str(e)}), 401
         return f(*args, **kwargs)
-    return decorated
-
-def verify_firebase_token():
-    def decorator(f):
-        @wraps(f)
-        def wrapper(*args, **kwargs):
-            auth_header = request.headers.get("Authorization", "")
-            if not auth_header.startswith("Bearer "):
-                return jsonify({"error": "Invalid token format"}), 401
-            id_token = auth_header.split(" ")[1]
-
-            try:
-                decoded_token = auth.verify_id_token(id_token)
-                request.user_id = decoded_token.get("uid")  # attach user_id to request
-            except Exception as e:
-                return jsonify({"error": "Unauthorized", "details": str(e)}), 401
-            return f(*args, **kwargs)
-        return wrapper
-    return decorator
-
+    return wrapper
 
 def get_user_id_from_auth_header():
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer "):
-        id_token = auth_header.split(" ")[1]
-        decoded_token = auth.verify_id_token(id_token)
-        return decoded_token.get("uid")
+        try:
+            token = auth_header.split(" ", 1)[1]
+            decoded = firebase_auth.verify_id_token(token)
+            return decoded.get("uid")
+        except Exception:
+            return None
     return None

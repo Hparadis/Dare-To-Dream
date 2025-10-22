@@ -1,9 +1,9 @@
 // src/api.js
 import { API_ROUTES } from "./routes";
 import { auth } from "./config/firebase";
+import { getToken } from "./authHelpers";
 
-
-const BASE_URL =
+export const BASE_URL =
   import.meta.env.MODE === "development"
     ? "http://127.0.0.1:8000"
     : import.meta.env.VITE_BACKEND_URL;
@@ -55,39 +55,29 @@ export const getInitialFriends = async (userId) => {
 };
 
 
-export const fetchGroups = async () => {
-  const user = auth.currentUser;
-  if (!user) throw new Error("User not logged in");
-
-  const token = await user.getIdToken();
-
-  const res = await fetch("http://localhost:8000/api/groups/recommend", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+export async function fetchGroups() {
+  const token = await getToken();
+  const res = await fetch("http://127.0.0.1:8000/api/groups/recommend", {
+    headers: { Authorization: `Bearer ${token}` },
   });
-
-  if (!res.ok) {
-    const errText = await res.text();
-    console.error("fetchGroups failed →", errText);
-    throw new Error("Failed to fetch recommended groups");
-  }
-
-  const data = await res.json();
-  console.log("Fetched groups from backend →", data);
-  return data.groups || [];
-};
+  if (!res.ok) throw new Error("Failed to fetch groups");
+  return res.json();
+}
 
 
-export const fetchCommunities = async () => {
-  const response = await fetch(`${BASE_URL}${API_ROUTES.communities}`);
-  const data = await handleApiResponse(response);
-  return data.communities || [];
-};
+
+export async function fetchCommunities() {
+  const token = await getToken();
+  const res = await fetch("http://127.0.0.1:8000/api/communities/recommend", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error("Failed to fetch communities");
+  return res.json();
+}
 
 export const fetchUserProfilesByIds = async (userIds) => {
   if (!userIds || userIds.length === 0) return [];
-  const response = await fetch(`${BASE_URL}${API_ROUTES.userProfiles}`, {
+  const response = await fetch(`${BASE_URL}/api/users/batch`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ userIds }),
@@ -96,15 +86,24 @@ export const fetchUserProfilesByIds = async (userIds) => {
   return data.profiles || [];
 };
 
+
 export const moderateContent = async (text) => {
+  if (!text?.trim()) return null;
+
+  const token = await getToken(); // if auth is needed
   const response = await fetch(`${BASE_URL}${API_ROUTES.moderateContent}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: token ? `Bearer ${token}` : undefined,
+    },
     body: JSON.stringify({ text }),
   });
+
   const data = await handleApiResponse(response);
-  return data.moderation_result;
+  return data?.moderation_result ?? null;
 };
+
 
 export async function sendMessage(conversationId, { senderId, receiverId, content, timestamp }) {
   const res = await fetch(
@@ -152,4 +151,8 @@ export const sendFriendInvitation = async (fromUserId, toUserId) => {
   return await response.json();
 };
 export const conversationIdFor = (a, b) => [a, b].sort().join('_');
+
+
+
+
 

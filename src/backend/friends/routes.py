@@ -1,12 +1,13 @@
+# //src/backend/friends/routes.py
 from datetime import datetime
 from flask import Blueprint, request, jsonify
-from google.cloud import firestore
+from firebase_admin import firestore
 from src.backend.friends.services import get_similar_friends, get_saved_friends,get_accepted_friends,get_chat_messages, save_message_to_db
 from src.backend.friends.firestore import get_similar_users
 from src.config.firebase import get_firestore
 
 friends_bp = Blueprint("friends", __name__, url_prefix="/api/friends")
-
+db = firestore.client()
 
 # ✅ Suggest friends (based on problem/cause)
 @friends_bp.route("/suggest", methods=["GET"])
@@ -158,3 +159,13 @@ def send_message(conversation_id):
     save_message_to_db(conversation_id, message_obj)  # implement in services.py
 
     return jsonify({"message": message_obj}), 200
+@friends_bp.route("/batch", methods=["POST"])
+def get_user_profiles_batch():
+    data = request.json
+    user_ids = data.get("userIds", [])
+    profiles = []
+    for uid in user_ids:
+        user_doc = db.collection("Users").document(uid).get()
+        if user_doc.exists:
+            profiles.append(user_doc.to_dict() | {"userId": uid})
+    return jsonify({"profiles": profiles})
