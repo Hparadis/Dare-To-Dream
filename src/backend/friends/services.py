@@ -58,10 +58,21 @@ def get_saved_friends(user_id):
     if not user_id:
         raise ValueError("Missing userId")
 
-    friends_ref = db.collection("Users").document(user_id).collection("Friends")
-    docs = friends_ref.stream()
-
-    return [doc.to_dict() for doc in docs]
+    friends = []
+    query = db.collection("friends").where("userId", "==", user_id).stream()
+    for doc in query:
+        data = doc.to_dict()
+        friend_id = data.get("friendId")
+        if friend_id:
+            # Try to get full profile from Users collection
+            user_doc = db.collection("Users").document(friend_id).get()
+            if user_doc.exists:
+                profile = user_doc.to_dict()
+                profile["userId"] = friend_id
+                friends.append(profile)
+            else:
+                friends.append({"userId": friend_id})
+    return friends
 def get_accepted_friends(user_id):
     if not user_id:
         raise ValueError("Missing userId")

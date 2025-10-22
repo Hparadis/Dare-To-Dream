@@ -20,10 +20,10 @@ import {
   ListItemText
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import AddCircleIcon from "@mui/icons-material/AddCircle";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
-
+import { auth } from "../config/firebase";
+ // ✅ make sure this path is correct
 
 // Custom styled Dialog
 const StyledDialog = styled(Dialog)(({ theme }) => ({
@@ -39,7 +39,7 @@ const StyledDialog = styled(Dialog)(({ theme }) => ({
   },
 }));
 
-export default function CreateGroupCommunityModal({ isOpen, onClose }) {
+export default function CreateGroupCommunityModal({ isOpen, onClose, onCreated }) {
   const [step, setStep] = useState(1);
   const [type, setType] = useState(""); // group or community
   const [visibility, setVisibility] = useState(""); // public/private
@@ -49,10 +49,10 @@ export default function CreateGroupCommunityModal({ isOpen, onClose }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [invited, setInvited] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   // Dummy search function (replace with API)
   const handleSearch = () => {
-    // Example: search results filtered by searchTerm
     const dummyUsers = [
       { id: "1", name: "Alice" },
       { id: "2", name: "Bob" },
@@ -75,25 +75,44 @@ export default function CreateGroupCommunityModal({ isOpen, onClose }) {
   };
 
   const handleSubmit = async () => {
-    const payload = {
-      type,
-      visibility,
-      maxMembers: visibility === "private" ? maxMembers : invited.length,
-      name,
-      description,
-      invitedMembers: invited.map(u => u.id)
-    };
-    console.log("Submitting:", payload);
-
     try {
-      const response = await fetch("http://127.0.0.1:5000/groups/create", {
+      setLoading(true);
+
+      const user = auth.currentUser;
+      if (!user) throw new Error("User not logged in");
+
+      const token = await user.getIdToken();
+
+      const payload = {
+        type,
+        visibility,
+        maxMembers: visibility === "private" ? maxMembers : invited.length || 20,
+        name,
+        description,
+        invitedMembers: invited.map(u => u.id),
+      };
+
+      console.log("Submitting:", payload);
+
+      const url =
+        type === "group"
+          ? "http://127.0.0.1:8000/api/groups/create"
+          : "http://127.0.0.1:8000/api/communities/create";
+
+      const response = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
       });
+
       const result = await response.json();
+
       if (response.ok) {
         alert(result.message || `${type} created successfully!`);
+        if (onCreated) onCreated(result); // notify parent so list refreshes
         onClose();
         // Reset
         setStep(1);
@@ -106,11 +125,13 @@ export default function CreateGroupCommunityModal({ isOpen, onClose }) {
         setSearchResults([]);
         setInvited([]);
       } else {
-        alert(result.message || "Error creating group/community");
+        alert(result.error || result.message || "Error creating group/community");
       }
     } catch (error) {
       console.error(error);
-      alert("Network or server error.");
+      alert(error.message || "Network or server error.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -259,9 +280,10 @@ export default function CreateGroupCommunityModal({ isOpen, onClose }) {
             fullWidth
             variant="contained"
             onClick={handleSubmit}
+            disabled={loading}
             sx={{ backgroundColor: "#2196f3", color: "#fff", "&:hover": { backgroundColor: "#1976d2" } }}
           >
-            Create {type}
+            {loading ? "Creating..." : `Create ${type}`}
           </Button>
         )}
       </DialogActions>

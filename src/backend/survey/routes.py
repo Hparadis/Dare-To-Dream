@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from src.backend.survey.services import submit_survey, fetch_surveys_for_user
-from src.backend.utils.auth import verify_firebase_token
+from src.backend.utils.auth import require_auth
 
 survey_bp = Blueprint("survey", __name__, url_prefix="/api/survey")
 
@@ -12,7 +12,7 @@ def handle_survey_submit():
         user_id = None
 
         if id_token:
-            decoded = verify_firebase_token(id_token)
+            decoded = require_auth(id_token)
             user_id = decoded.get("uid")
 
         data = request.get_json()

@@ -1,6 +1,6 @@
 // src/components/GroupsList.jsx
 import React, { useEffect, useState } from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/config/firebase";
 import GroupCommunityAccordion from "./GroupCommunityAccordion";
 
@@ -11,9 +11,7 @@ const GroupsList = ({ userId }) => {
     async function fetchGroups() {
       try {
         const groupsRef = collection(db, "Groups");
-        // show groups where this user is a member
-        const q = query(groupsRef, where("members", "array-contains", userId));
-        const snapshot = await getDocs(q);
+        const snapshot = await getDocs(groupsRef);
 
         const data = snapshot.docs.map(doc => ({
           id: doc.id,
@@ -27,11 +25,11 @@ const GroupsList = ({ userId }) => {
     }
 
     fetchGroups();
-  }, [userId]);
+  }, []);
 
-  const handleJoin = async (group) => {
+  const handleJoin = (group) => {
     console.log("Joining group:", group);
-    // we’ll implement Firestore update later
+    // TODO: Firestore update (add user to group.members)
   };
 
   return (
