@@ -221,14 +221,14 @@ export default function AppHeader({ isAnonymous, onAvatarChange }) {
                 <MenuItem onClick={handleMenuClose} component={Link} to="/progress">
                   Progress
                 </MenuItem>
-                <MenuItem onClick={handleOpenLegacy}>Legacy</MenuItem>
-                <MenuItem onClick={handleOpenEmotionalSpectrum}>
+                {/* <MenuItem onClick={handleOpenLegacy}>Legacy</MenuItem> */}
+                {/* <MenuItem onClick={handleOpenEmotionalSpectrum}>
                   Emotional Spectrum
-                </MenuItem>
+                </MenuItem> */}
                 <MenuItem onClick={handleOpenSettings}>Settings</MenuItem>
-                <MenuItem onClick={handleOpenEmotionalSpectrum}>
+                {/* <MenuItem onClick={handleOpenEmotionalSpectrum}>
                   Points Board
-                </MenuItem>
+                </MenuItem> */}
               </Menu>
             </Box>
           </Toolbar>

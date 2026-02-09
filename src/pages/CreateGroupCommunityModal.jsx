@@ -96,8 +96,8 @@ export default function CreateGroupCommunityModal({ isOpen, onClose, onCreated }
 
       const url =
         type === "group"
-          ? "http://127.0.0.1:8000/api/groups/create"
-          : "http://127.0.0.1:8000/api/communities/create";
+          ? "http://192.168.1.68:8000/api/groups/create"
+          : "http://192.168.1.68:8000/api/communities/create";
 
       const response = await fetch(url, {
         method: "POST",

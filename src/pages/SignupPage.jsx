@@ -1,7 +1,7 @@
 import React, { useState,useEffect } from "react";
 import { Container, Paper, Grid, Typography, Button, Divider, CircularProgress } from "@mui/material";
 import CustomTextField from "./CustomTextField";
-import tracker from "../tracker";
+// import tracker from "../tracker";
 import { useNavigate } from "react-router-dom";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth , db } from "../config/firebase"; // ✅ correct
@@ -45,11 +45,27 @@ export default function SignupPage() {
 
       // ✅ Save profile info in Firestore
       const userDocRef = doc(db, "Surveys", userCredential.user.uid);
-      await setDoc(userDocRef, {
-        name: firstName,
-        description: "", // You can optionally collect this during signup
-        createdAt: new Date().toISOString(),
-      }, { merge: true });
+      await setDoc(
+        userDocRef,
+        {
+          name: firstName,
+          description: "", // You can optionally collect this during signup
+          createdAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
+
+      const profileDocRef = doc(db, "Users", userCredential.user.uid);
+      await setDoc(
+        profileDocRef,
+        {
+          name: firstName,
+          email,
+          description: "",
+          createdAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
 
       // ✅ Set user info in context
       setUserName(firstName);
@@ -80,11 +96,11 @@ export default function SignupPage() {
   
   useEffect(() => {
     // Track when this page is viewed
-    tracker.trackEvent("page_view", { page: "Signup" });
+    // tracker.trackEvent("page_view", { page: "Signup" });
   }, []);
   const handleLogin = (isSuccess) => {
     // Track the login event with success status
-    tracker.trackEvent("user_login", { success: isSuccess });
+    // tracker.trackEvent("user_login", { success: isSuccess });
     // Add your login logic here...
   };
   

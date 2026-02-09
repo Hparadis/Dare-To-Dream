@@ -33,11 +33,11 @@ import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import LightbulbIcon from "@mui/icons-material/Lightbulb";
 import PostCreator from "./PostCreator";
-import tracker from "../tracker";
+// import tracker from "../tracker";
 import { fetchGroups, fetchCommunities,BASE_URL } from '../api';
 import { useNavigate, useLocation } from "react-router-dom";
 import { createGroup, joinGroup, createCommunity, joinCommunity } from '../api/firebaseApi';
-import { inviteFriend as sendFriendInvitation ,getInitialFriends} from "../services/friends";
+import { inviteFriend as sendFriendInvitation, getInitialFriends, getAcceptedFriends } from "../services/friends";
 import { useUser } from "../context/UserContext";
 import SharedOverlayContent from "../components/SharedOverlayContent";
 
@@ -62,7 +62,7 @@ function InvitationsList({ userId }) {
   const handleResponse = async (inviteId, accept) => {
     const endpoint = accept ? 'accept' : 'decline';
     try {
-      const res = await fetch(`/api/friends/invitations/${endpoint}`, {
+      const res = await fetch(`http://192.168.1.68:8000/api/friends/invitations/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ inviteId }),
@@ -201,7 +201,7 @@ export default function Home() {
     (async () => {
       try {
         // 🔥 Step 1: Fetch latest survey for user
-        const surveyRes = await fetch(`http://localhost:8000/api/survey?userId=${userId}`);
+        const surveyRes = await fetch(`http://192.168.1.68:8000/api/survey?userId=${userId}`);
         const { surveys = [] } = await surveyRes.json();
   
         if (surveys.length === 0) {
@@ -219,8 +219,12 @@ export default function Home() {
           fetchGroups(),
           fetchCommunities()
         ]);
-  
-        setFriends(friendsRes ?? []);
+
+        let nextFriends = friendsRes ?? [];
+        if (nextFriends.length === 0) {
+          nextFriends = await getAcceptedFriends(userId);
+        }
+        setFriends(nextFriends);
         setGroups(groupsRes ?? []);
         setCommunities(commRes ?? []);
       } catch (err) {
@@ -251,14 +255,7 @@ export default function Home() {
           });
           const data = await res.json();
   
-          // fetch recommended groups for user
-          // const recRes = await fetch(`${BASE_URL}/api/groups/recommend`, {
-          //   headers: { Authorization: `Bearer ${token}` }
-          // });
-          const recData = await recRes.json();
-  
           setGroups(Array.isArray(data.groups) ? data.groups : []);
-          setRecommendedGroups(Array.isArray(recData.groups) ? recData.groups : []);
         } catch (err) {
           console.error("Error fetching groups", err);
           errorSnack("Failed to load groups", "error");
@@ -271,6 +268,7 @@ export default function Home() {
   
       case "friends":
         setShowFriends(true);
+        console.log("Home: Friends overlay opened");
         break;
   
       default:
@@ -347,7 +345,7 @@ export default function Home() {
   };
 
   const handleFeatureClick = (featureName) => {
-    tracker.trackEvent("feature_clicked", { feature: featureName });
+    // tracker.trackEvent("feature_clicked", { feature: featureName });
   };
 
   const handleShowMembers = (type) => setMemberListType(type);
@@ -357,21 +355,17 @@ export default function Home() {
 
   const handleOpenCreateModal = () => {
     setIsCreateModalOpen(true);
-    console.log("Create Modal Open state set to true. isCreateModalOpen:", true);
   };
   const handleCloseCreateModal = () => {
     setIsCreateModalOpen(false);
-    console.log("Create Modal Open state set to false. isCreateModalOpen:", false);
   };
-  
-  console.log("Friend clicked:", friends);
   const inviteFriend = async (fromUserId, toUserId, setInviteStatus) => {
     console.log("Sending invite with:", { fromUserId, toUserId });
   
     setInviteStatus(prev => ({ ...prev, [toUserId]: 'loading' }));
   
     try {
-      const response = await fetch('http://localhost:8000/api/friends/invite', {
+      const response = await fetch('http://192.168.1.68:8000/api/friends/invite', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -392,7 +386,7 @@ export default function Home() {
   
   const fetchInvitations = async (userId) => {
     try {
-      const res = await fetch(`/api/friends/invitations?userId=${userId}`);
+      const res = await fetch(`http://192.168.1.68:8000/api/friends/invitations?userId=${userId}`);
       if (!res.ok) throw new Error(`Error: ${res.status}`);
       const data = await res.json();
       return data.invitations || [];
@@ -402,6 +396,7 @@ export default function Home() {
     }
   };
   const handleInvite = async (friend) => {
+    console.log("Home: Friends overlay item clicked", friend);
     const toUserId = friend.userId;
     const fromUserId = userId;
   
@@ -453,13 +448,12 @@ export default function Home() {
 
 
 
-  console.log("Home render", { showGroups, showCommunities, showFriends, isCreateModalOpen });
 
   const handleCreateGroup = async (groupName, description) => {
     const userId = useUserId();
     if (userId && groupName) {
       try {
-        await fetch('/api/groups/create', {
+        await fetch('http://192.168.1.68:8000/api/groups/create', {
           method: 'POST',
           body: JSON.stringify({ userId, name: "Creators Club" }),
           headers: { 'Content-Type': 'application/json' }
@@ -511,7 +505,7 @@ export default function Home() {
       if (!user) throw new Error("User not logged in");
       const token = await user.getIdToken();
   
-      const res = await fetch(`${BASE_URL}/api/groups/join`, {
+      const res = await fetch(`http://192.168.1.68:8000/api/groups/join`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -572,8 +566,6 @@ export default function Home() {
   };
   
   
-  console.log("groups:", groups);
-  console.log("communities:", communities);
 
   return (
     <Container
@@ -647,7 +639,6 @@ export default function Home() {
               title="Groups"
               items={groups}
               onItemClick={(group) => handleNavigation("group", group)}
-              emptyMessage="No groups available. Why not create one?"
               type="groups"
             />
           )}
@@ -656,7 +647,6 @@ export default function Home() {
               title="Communities"
               items={communities}
               onItemClick={(community) => handleNavigation("community", community)}
-              emptyMessage="No communities found. Start a new one!"
               type="communities"
             />
           )}

@@ -5,6 +5,19 @@ from google.cloud import firestore
 
 db = firestore.Client()
 
+def _get_profile_for_user(user_id):
+    user_doc = db.collection("Users").document(user_id).get()
+    if user_doc.exists:
+        profile = user_doc.to_dict()
+        profile["userId"] = user_id
+        return profile
+    survey_doc = db.collection("Surveys").document(user_id).get()
+    if survey_doc.exists:
+        profile = survey_doc.to_dict()
+        profile["userId"] = user_id
+        return profile
+    return {"userId": user_id}
+
 def get_similar_friends(user_id, problem, cause, limit=3):
     friends = []
     # Query surveys collection to find users matching problem and cause, excluding current user
@@ -64,14 +77,7 @@ def get_saved_friends(user_id):
         data = doc.to_dict()
         friend_id = data.get("friendId")
         if friend_id:
-            # Try to get full profile from Users collection
-            user_doc = db.collection("Users").document(friend_id).get()
-            if user_doc.exists:
-                profile = user_doc.to_dict()
-                profile["userId"] = friend_id
-                friends.append(profile)
-            else:
-                friends.append({"userId": friend_id})
+            friends.append(_get_profile_for_user(friend_id))
     return friends
 def get_accepted_friends(user_id):
     if not user_id:
@@ -86,15 +92,7 @@ def get_accepted_friends(user_id):
         friend_id = data.get("friendId")
 
         if friend_id:
-            # Try fetching profile from Users collection
-            user_doc = db.collection("Users").document(friend_id).get()
-            if user_doc.exists:
-                profile = user_doc.to_dict()
-                profile["userId"] = friend_id
-                friends.append(profile)
-            else:
-                # Fallback: just return the ID if no profile exists
-                friends.append({"userId": friend_id})
+            friends.append(_get_profile_for_user(friend_id))
 
     return friends
 # ✅ Fetch chat messages

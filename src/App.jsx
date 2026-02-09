@@ -20,14 +20,14 @@ import Party from "./pages/Party";
 import Games from "./pages/Games";
 import Socialize from "./pages/Socialize";
 import { Container } from "@mui/material";
-import tracker from "./tracker";
+// import tracker from "./tracker";
 import Notifications from './pages/Notifications';
 
 function App() {
   const [initialRoute, setInitialRoute] = useState(null);
 
   useEffect(() => {
-    tracker.init();
+    // tracker.init();
 
     // Check localStorage for returning user
     const hasVisitedBefore = localStorage.getItem("hasVisited");

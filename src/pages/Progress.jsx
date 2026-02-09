@@ -35,7 +35,7 @@ import Yoga from './Yoga';
 import BooksModal from './BooksModal';
 
 import { nodes, content } from "./ProgressData";
-import tracker from '../tracker';
+// import tracker from '../tracker';
 import GoalsTable from '../components/GoalsTable';
 import Journal from '../components/Journal';
 // import MoreVertIcon from '@mui/icons-material/MoreVert'; // No longer used as it's in ProgressHeader
@@ -101,7 +101,7 @@ export default function Progress() {
   };
 
   const handleFeatureClick = (featureName) => {
-    tracker.trackEvent('feature_clicked', { feature: featureName });
+    // tracker.trackEvent('feature_clicked', { feature: featureName });
   };
 
   const handleVideoOpen = (video) => {
@@ -142,7 +142,7 @@ export default function Progress() {
   };
 
   useEffect(() => {
-    tracker.trackEvent('page_view', { page: 'Progress' });
+    // tracker.trackEvent('page_view', { page: 'Progress' });
   }, []);
   
 
