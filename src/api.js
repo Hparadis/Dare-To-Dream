@@ -3,10 +3,7 @@ import { API_ROUTES } from "./routes";
 import { auth } from "./config/firebase";
 import { getToken } from "./authHelpers";
 
-export const BASE_URL =
-  import.meta.env.MODE === "development"
-    ? "http://127.0.0.1:8000"
-    : import.meta.env.VITE_BACKEND_URL;
+export const BASE_URL = "http://192.168.1.68:8000";
 
 console.log(import.meta.env.VITE_BACKEND_URL);
 
@@ -57,7 +54,7 @@ export const getInitialFriends = async (userId) => {
 
 export async function fetchGroups() {
   const token = await getToken();
-  const res = await fetch("http://127.0.0.1:8000/api/groups/recommend", {
+  const res = await fetch(`${BASE_URL}/api/groups/recommend`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error("Failed to fetch groups");
@@ -68,7 +65,7 @@ export async function fetchGroups() {
 
 export async function fetchCommunities() {
   const token = await getToken();
-  const res = await fetch("http://127.0.0.1:8000/api/communities/recommend", {
+  const res = await fetch(`${BASE_URL}/api/communities/recommend`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error("Failed to fetch communities");
@@ -139,7 +136,7 @@ export const getSuggestedFriends = async (userId) => {
   return data.suggested || [];
 };
 export const sendFriendInvitation = async (fromUserId, toUserId) => {
-  const response = await fetch(`/api/friends/invite`, {
+  const response = await fetch(`${BASE_URL}/api/friends/invite`, {
     method: 'POST',
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ fromUserId, toUserId })
@@ -151,8 +148,6 @@ export const sendFriendInvitation = async (fromUserId, toUserId) => {
   return await response.json();
 };
 export const conversationIdFor = (a, b) => [a, b].sort().join('_');
-
-
 
 
 

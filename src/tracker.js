@@ -19,13 +19,9 @@ const tracker = (() => {
         eventData,
         timestamp: new Date().toISOString()
       };
-  
-      // Log locally for debugging:
-      console.log("Tracking Event:", event);
+
+      // Tracking disabled to reduce console noise during debugging.
       events.push(event);
-  
-      // Send the event to your server asynchronously:
-      sendEvent(event);
     };
   
     /**
@@ -77,7 +73,8 @@ const tracker = (() => {
      * Call this once when your application starts.
      */
     const init = () => {
-      attachClickTracker();
+      // Tracking disabled to reduce console noise during debugging.
+      // attachClickTracker();
       // You could also attach other global listeners here.
     };
   

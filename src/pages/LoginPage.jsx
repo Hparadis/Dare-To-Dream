@@ -12,7 +12,7 @@ import {
   FormControlLabel
 } from "@mui/material";
 import CustomTextField from "./CustomTextField"; 
-import tracker from "../tracker"; 
+// import tracker from "../tracker"; 
 import { useNavigate } from "react-router-dom";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../config/firebase"; 
@@ -41,7 +41,7 @@ export default function LoginPage() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
       console.log("Login successful:", userCredential.user);
-      tracker.trackEvent("user_login", { success: true });
+      // tracker.trackEvent("user_login", { success: true });
       navigate("/home");
     } catch (error) {
       if (error.code === "auth/user-not-found") {
@@ -51,18 +51,18 @@ export default function LoginPage() {
       } else {
         setError("Login failed: " + error.message);
       }
-      tracker.trackEvent("user_login", { success: false, error: error.code });
+      // tracker.trackEvent("user_login", { success: false, error: error.code });
     } finally {
       setLoading(false);
     }
   };
   
   useEffect(() => {
-    tracker.trackEvent("page_view", { page: "Login" });
+    // tracker.trackEvent("page_view", { page: "Login" });
   }, []);
   const handleLogin = (isSuccess) => {
     // Track the login event with success status
-    tracker.trackEvent("user_login", { success: isSuccess });
+    // tracker.trackEvent("user_login", { success: isSuccess });
     // Add your login logic here...
   };
 

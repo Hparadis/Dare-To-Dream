@@ -75,7 +75,7 @@ const Survey = () => {
         ...formData
       });
   
-      const response = await fetch("http://localhost:8000/api/survey/submit", {
+      const response = await fetch("http://192.168.1.68:8000/api/survey/submit", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

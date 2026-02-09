@@ -1,5 +1,5 @@
 export const sendFriendInvitation = async (fromUserId, toUserId) => {
-    const res = await fetch("/api/friends/invite", {
+    const res = await fetch("http://192.168.1.68:8000/api/friends/invite", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ fromUserId, toUserId }),
@@ -13,7 +13,7 @@ export const sendFriendInvitation = async (fromUserId, toUserId) => {
     return res.json();
   };
   export const getInitialFriends = async (userId, problem, cause) => {
-    const url = new URL("http://localhost:8000/api/friends/suggest");
+  const url = new URL("http://192.168.1.68:8000/api/friends/suggest");
     url.searchParams.append("userId", userId);
     url.searchParams.append("problem", problem);
     url.searchParams.append("cause", cause);
@@ -27,7 +27,7 @@ export const sendFriendInvitation = async (fromUserId, toUserId) => {
     if (setInviteStatus) setInviteStatus(toUserId, 'inviting');
   
     try {
-      const response = await fetch("/api/friends/invite", {
+      const response = await fetch("http://192.168.1.68:8000/api/friends/invite", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -54,7 +54,7 @@ export const sendFriendInvitation = async (fromUserId, toUserId) => {
 
 export const fetchInvitations = async (userId) => {
   try {
-    const res = await fetch(`http://localhost:8000/api/friends/invitations?userId=${userId}`);
+    const res = await fetch(`http://192.168.1.68:8000/api/friends/invitations?userId=${userId}`);
     if (!res.ok) throw new Error(`Error: ${res.status}`);
     const data = await res.json();
     return data.invitations || [];
@@ -63,7 +63,7 @@ export const fetchInvitations = async (userId) => {
     return [];
   }
 };
-const BASE_URL = "http://127.0.0.1:8000/api/friends";
+const BASE_URL = "http://192.168.1.68:8000/api/friends";
 
 export async function getAcceptedFriends(userId) {
   const res = await fetch(`${BASE_URL}/accepted/${userId}`);

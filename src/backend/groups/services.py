@@ -1,9 +1,9 @@
 # src/backend/groups/services.py
-from .firestore import create_group, get_groups_for_user, add_member_to_group, get_groups_by_tag, list_all_groups
+from .firestore import create_group as create_group_doc, get_groups_for_user, add_member_to_group, get_groups_by_tag, list_all_groups
 from firebase_admin import firestore
 from src.config import firebase as firebase_config  # if you have project config; otherwise db usage below
 from firebase_admin import firestore as _firestore
-from .firestore import create_group, search_groups
+from .firestore import create_group as create_group_doc, search_groups
 
 db = firestore.client()
 
@@ -47,7 +47,7 @@ def auto_create_groups(min_size=5, allow_smaller=True, min_smaller=2):
                 "members": members,
                 "createdAt": _firestore.SERVER_TIMESTAMP,
             }
-            gid = create_group(group_data)
+            gid = create_group_doc(group_data)
             created.append({"id": gid, **group_data})
 
         # optional: allow a smaller group
@@ -61,7 +61,7 @@ def auto_create_groups(min_size=5, allow_smaller=True, min_smaller=2):
                 "members": members,
                 "createdAt": _firestore.SERVER_TIMESTAMP,
             }
-            gid = create_group(group_data)
+            gid = create_group_doc(group_data)
             created.append({"id": gid, **group_data})
 
     return created
@@ -103,7 +103,7 @@ def handle_create_group(user_id, payload):
         "createdBy": user_id,
         "members": [user_id],
     }
-    return create_group(group_data)
+    return create_group_doc(group_data)
 
 def handle_search_groups(query):
     return search_groups(query)
