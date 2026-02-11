@@ -21,6 +21,7 @@ import { useUser } from "../context/UserContext";
 import { getAuth } from "firebase/auth";
 import { getApp } from 'firebase/app';
 import { getFirestore, doc, setDoc } from 'firebase/firestore'; 
+import { BASE_URL } from "../api";
 
 
 const Survey = () => {
@@ -75,7 +76,7 @@ const Survey = () => {
         ...formData
       });
   
-      const response = await fetch("http://192.168.1.68:8000/api/survey/submit", {
+      const response = await fetch(`${BASE_URL}/api/survey/submit`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

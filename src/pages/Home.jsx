@@ -62,7 +62,7 @@ function InvitationsList({ userId }) {
   const handleResponse = async (inviteId, accept) => {
     const endpoint = accept ? 'accept' : 'decline';
     try {
-      const res = await fetch(`http://192.168.1.68:8000/api/friends/invitations/${endpoint}`, {
+      const res = await fetch(`${BASE_URL}/api/friends/invitations/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ inviteId }),
@@ -201,7 +201,7 @@ export default function Home() {
     (async () => {
       try {
         // 🔥 Step 1: Fetch latest survey for user
-        const surveyRes = await fetch(`http://192.168.1.68:8000/api/survey?userId=${userId}`);
+        const surveyRes = await fetch(`${BASE_URL}/api/survey?userId=${userId}`);
         const { surveys = [] } = await surveyRes.json();
   
         if (surveys.length === 0) {
@@ -365,7 +365,7 @@ export default function Home() {
     setInviteStatus(prev => ({ ...prev, [toUserId]: 'loading' }));
   
     try {
-      const response = await fetch('http://192.168.1.68:8000/api/friends/invite', {
+      const response = await fetch(`${BASE_URL}/api/friends/invite`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -386,7 +386,7 @@ export default function Home() {
   
   const fetchInvitations = async (userId) => {
     try {
-      const res = await fetch(`http://192.168.1.68:8000/api/friends/invitations?userId=${userId}`);
+      const res = await fetch(`${BASE_URL}/api/friends/invitations?userId=${userId}`);
       if (!res.ok) throw new Error(`Error: ${res.status}`);
       const data = await res.json();
       return data.invitations || [];
@@ -453,7 +453,7 @@ export default function Home() {
     const userId = useUserId();
     if (userId && groupName) {
       try {
-        await fetch('http://192.168.1.68:8000/api/groups/create', {
+        await fetch(`${BASE_URL}/api/groups/create`, {
           method: 'POST',
           body: JSON.stringify({ userId, name: "Creators Club" }),
           headers: { 'Content-Type': 'application/json' }
@@ -505,7 +505,7 @@ export default function Home() {
       if (!user) throw new Error("User not logged in");
       const token = await user.getIdToken();
   
-      const res = await fetch(`http://192.168.1.68:8000/api/groups/join`, {
+      const res = await fetch(`${BASE_URL}/api/groups/join`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

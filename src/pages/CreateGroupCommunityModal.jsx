@@ -23,6 +23,7 @@ import { styled } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import { auth } from "../config/firebase";
+import { BASE_URL } from "../api";
  // ✅ make sure this path is correct
 
 // Custom styled Dialog
@@ -96,8 +97,8 @@ export default function CreateGroupCommunityModal({ isOpen, onClose, onCreated }
 
       const url =
         type === "group"
-          ? "http://192.168.1.68:8000/api/groups/create"
-          : "http://192.168.1.68:8000/api/communities/create";
+          ? `${BASE_URL}/api/groups/create`
+          : `${BASE_URL}/api/communities/create`;
 
       const response = await fetch(url, {
         method: "POST",
