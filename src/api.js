@@ -3,9 +3,7 @@ import { API_ROUTES } from "./routes";
 import { auth } from "./config/firebase";
 import { getToken } from "./authHelpers";
 
-export const BASE_URL = "http://192.168.1.68:8000";
-
-console.log(import.meta.env.VITE_BACKEND_URL);
+export const BASE_URL = (import.meta.env.VITE_BACKEND_URL || "http://localhost:8000").replace(/\/$/, "");
 
 async function handleApiResponse(response) {
   const contentType = response.headers.get("content-type");
@@ -148,6 +146,4 @@ export const sendFriendInvitation = async (fromUserId, toUserId) => {
   return await response.json();
 };
 export const conversationIdFor = (a, b) => [a, b].sort().join('_');
-
-
 
