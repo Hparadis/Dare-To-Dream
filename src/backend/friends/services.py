@@ -1,9 +1,5 @@
 # src/backend/friends/services.py
 from src.backend.friends.firestore import db
-from google.cloud.firestore_v1 import ArrayRemove
-from google.cloud import firestore
-
-db = firestore.Client()
 
 def _get_profile_for_user(user_id):
     user_doc = db.collection("Users").document(user_id).get()

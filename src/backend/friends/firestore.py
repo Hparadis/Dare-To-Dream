@@ -1,6 +1,4 @@
-from google.cloud import firestore
-
-db = firestore.Client()
+from src.config.firebase import db
 
 def get_similar_users(current_user_id, problem, cause, limit=3):
     surveys_ref = db.collection("Surveys")

@@ -1,7 +1,6 @@
-from google.cloud import firestore
 from datetime import datetime
 from src.backend.friends.services import suggest_and_save_friends
-db = firestore.Client()
+from src.config.firebase import db
 
 def submit_survey(data):
     user_id = data.get("userId")
