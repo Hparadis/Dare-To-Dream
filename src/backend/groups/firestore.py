@@ -1,7 +1,6 @@
 # src/backend/groups/firestore.py
 from firebase_admin import firestore
-
-db = firestore.client()
+from src.config.firebase import db
 
 def create_group(group_data: dict) -> str:
     """Create a group document and return its ID."""

@@ -1,6 +1,6 @@
 # src/backend/groups/routes.py
 from flask import Blueprint, request, jsonify
-from firebase_admin import firestore
+from firebase_admin import firestore as admin_firestore
 from src.backend.utils.auth import require_auth
 from src.backend.groups.services import (
     auto_create_groups,
@@ -10,9 +10,9 @@ from src.backend.groups.services import (
     handle_search_groups
 )
 from src.backend.groups.firestore import list_all_groups
+from src.config.firebase import db
 
 groups_bp = Blueprint("groups", __name__)
-db = firestore.client()
 
 # --- GROUP CREATION ---
 @groups_bp.route("/auto-create", methods=["POST"])
@@ -76,7 +76,7 @@ def join_group_route():
         return jsonify({"error": "Group not found"}), 404
 
     group_ref.update({
-        "members": firestore.ArrayUnion([uid])
+        "members": admin_firestore.ArrayUnion([uid])
     })
 
     return jsonify({"message": "Joined group successfully", "groupId": group_id}), 200

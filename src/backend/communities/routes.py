@@ -1,6 +1,5 @@
 # src/backend/communities/routes.py
 from flask import Blueprint, request, jsonify
-from firebase_admin import firestore
 from src.backend.utils.auth import require_auth
 from src.backend.communities.services import (
     create_community_service,
@@ -11,9 +10,9 @@ from src.backend.communities.services import (
 )
 from src.backend.communities.firestore import add_member_to_community
 from .services import handle_create_community, handle_search_communities
+from src.config.firebase import db
 
 communities_bp = Blueprint("communities", __name__)
-db = firestore.client()
 
 @communities_bp.route("/auto-create", methods=["POST"])
 @require_auth

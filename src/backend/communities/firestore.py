@@ -1,7 +1,5 @@
 # src/backend/communities/firestore.py
-from firebase_admin import firestore
-
-db = firestore.client()
+from src.config.firebase import db
 
 def create_community(community_data: dict):
     ref = db.collection("Communities").document()

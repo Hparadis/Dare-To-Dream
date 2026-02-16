@@ -1,9 +1,8 @@
 # src/backend/users/routes.py
 from flask import Blueprint, request, jsonify
-from firebase_admin import firestore
+from src.config.firebase import db
 
 users_bp = Blueprint("users", __name__, url_prefix="/api/users")
-db = firestore.client()
 
 
 def _get_profile_for_user(user_id):

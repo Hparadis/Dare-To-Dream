@@ -1,11 +1,8 @@
 # src/backend/groups/services.py
 from .firestore import create_group as create_group_doc, get_groups_for_user, add_member_to_group, get_groups_by_tag, list_all_groups
-from firebase_admin import firestore
-from src.config import firebase as firebase_config  # if you have project config; otherwise db usage below
 from firebase_admin import firestore as _firestore
+from src.config.firebase import db
 from .firestore import create_group as create_group_doc, search_groups
-
-db = firestore.client()
 
 def auto_create_groups(min_size=5, allow_smaller=True, min_smaller=2):
     """

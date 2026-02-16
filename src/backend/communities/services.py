@@ -1,9 +1,8 @@
 # src/backend/communities/services.py
 from firebase_admin import firestore
 from .firestore import create_community as create_community_firestore
-from .firestore import create_community, search_communities
-
-db = firestore.client()
+from .firestore import add_member_to_community, create_community, search_communities
+from src.config.firebase import db
 
 
 def auto_create_communities():
