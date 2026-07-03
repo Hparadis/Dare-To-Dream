@@ -22,31 +22,33 @@ import Socialize from "./pages/Socialize";
 import { Container } from "@mui/material";
 // import tracker from "./tracker";
 import Notifications from './pages/Notifications';
+import ChatOnboarding from "./pages/ChatOnboarding";
 
 function App() {
-  const [initialRoute, setInitialRoute] = useState(null);
+  // const [initialRoute, setInitialRoute] = useState(null);
 
-  useEffect(() => {
-    // tracker.init();
+  // useEffect(() => {
+  //   // tracker.init();
 
-    // Check localStorage for returning user
-    const hasVisitedBefore = localStorage.getItem("hasVisited");
+  //   // Check localStorage for returning user
+  //   const hasVisitedBefore = localStorage.getItem("hasVisited");
 
-    if (hasVisitedBefore) {
-      setInitialRoute("/login");
-    } else {
-      localStorage.setItem("hasVisited", "true");
-      setInitialRoute("/signup");
-    }
-  }, []);
+  //   if (hasVisitedBefore) {
+  //     setInitialRoute("/login");
+  //   } else {
+  //     localStorage.setItem("hasVisited", "true");
+  //     setInitialRoute("/signup");
+  //   }
+  // }, []);
 
-  if (initialRoute === null) return null; // Wait until route is determined
+  // if (initialRoute === null) return null; // Wait until route is determined
 
   return (
     <Router>
       <Container maxWidth="md">
         <Routes>
-          <Route path="/" element={<Navigate to={initialRoute} />} />
+          {/* <Route path="/" element={<Navigate to={initialRoute} />} /> */}
+          <Route path="/" element={<ChatOnboarding />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/survey" element={<Survey />} />

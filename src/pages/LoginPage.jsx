@@ -16,8 +16,12 @@ import CustomTextField from "./CustomTextField";
 import { useNavigate } from "react-router-dom";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../config/firebase"; 
+import { useLocation } from "react-router-dom";
+import { joinGroup, joinCommunity } from "../api/firebaseApi";
+
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -42,7 +46,15 @@ export default function LoginPage() {
       const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
       console.log("Login successful:", userCredential.user);
       // tracker.trackEvent("user_login", { success: true });
+      // navigate("/home");
+      const pendingJoin = location.state?.pendingJoin;
+      if (pendingJoin) {
+        const { kind, item } = pendingJoin;
+        if (kind === "group") await joinGroup(userCredential.user.uid, item.id);
+        else await joinCommunity(userCredential.user.uid, item.id);
+      }
       navigate("/home");
+
     } catch (error) {
       if (error.code === "auth/user-not-found") {
         navigate("/signup", { state: { email: formData.email } });

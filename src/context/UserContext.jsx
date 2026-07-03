@@ -85,7 +85,7 @@ export const UserProvider = ({ children }) => {
           console.log("UserContext: Custom token sign-in initiated.");
         } else {
           console.log("UserContext: Attempting anonymous sign-in...");
-          // await signInAnonymously(firebaseAuth);
+          await signInAnonymously(firebaseAuth);
           console.log("UserContext: Anonymous sign-in initiated.");
         }
         
