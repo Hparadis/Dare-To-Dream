@@ -6,6 +6,8 @@ def submit_survey(data):
     user_id = data.get("userId")
     name = data.get("name", f"User-{user_id[:4]}")
     description = data.get("description", "New user profile.")
+    problem = data.get("problem")
+    cause = data.get("cause")
 
     if not user_id:
         raise ValueError("Missing userId")
@@ -16,6 +18,7 @@ def submit_survey(data):
         "userId": user_id,
         "name": name,
         "description": description,
+        "tags": [problem] if problem else [],
         "createdAt": datetime.utcnow().isoformat()
     }, merge=True)
 
@@ -26,8 +29,8 @@ def submit_survey(data):
     survey_ref = db.collection("Surveys").document(user_id)  # ✅ use userId as ID
     survey_ref.set(survey_data)  # overwrite if exists
 
-    problem = data.get("problem")
-    cause = data.get("cause")
+    # problem = data.get("problem")
+    # cause = data.get("cause")
     if problem and cause:
         suggest_and_save_friends(user_id, problem, cause)
 

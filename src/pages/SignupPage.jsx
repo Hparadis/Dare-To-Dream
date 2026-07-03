@@ -3,16 +3,18 @@ import { Container, Paper, Grid, Typography, Button, Divider, CircularProgress }
 import CustomTextField from "./CustomTextField";
 // import tracker from "../tracker";
 import { useNavigate } from "react-router-dom";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+// import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth , db } from "../config/firebase"; // ✅ correct
 import { useUser } from "../context/UserContext";
 import { doc, setDoc } from "firebase/firestore";
-
-
+import { createUserWithEmailAndPassword, linkWithCredential, EmailAuthProvider } from "firebase/auth";
+import { useLocation } from "react-router-dom";
+import { joinGroup, joinCommunity } from "../api/firebaseApi";
 
 export default function SignupPage() {
   const { setUserName, setUserDescription } = useUser();
   const navigate = useNavigate();
+  const location = useLocation();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -40,8 +42,18 @@ export default function SignupPage() {
     }
   
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      console.log("User created:", userCredential.user);
+      // const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      // console.log("User created:", userCredential.user);
+      const current = auth.currentUser;
+      const wasGuest = !!(current && current.isAnonymous);
+      let userCredential;
+
+      if (wasGuest) {
+        const credential = EmailAuthProvider.credential(email, password);
+        userCredential = await linkWithCredential(current, credential);
+      } else {
+        userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      }
 
       // ✅ Save profile info in Firestore
       const userDocRef = doc(db, "Surveys", userCredential.user.uid);
@@ -71,7 +83,15 @@ export default function SignupPage() {
       setUserName(firstName);
       setUserDescription("");
 
-      navigate("/survey");
+      // navigate("/survey");
+      const pendingJoin = location.state?.pendingJoin;
+      if (pendingJoin) {
+        const { kind, item } = pendingJoin;
+        if (kind === "group") await joinGroup(userCredential.user.uid, item.id);
+        else await joinCommunity(userCredential.user.uid, item.id);
+      }
+      navigate(wasGuest ? "/home" : "/survey");
+
     } catch (error) {
       console.error("Sign-up error:", error);
   
