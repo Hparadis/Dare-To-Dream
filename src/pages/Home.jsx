@@ -428,7 +428,7 @@ export default function Home() {
       try {
         const [publicGroupsRes, publicCommunities] = await Promise.all([
           fetch(`${BASE_URL}/api/groups/all`).then(res => res.json()),
-          fetchCommunities() // your existing function for communities
+          // fetchCommunities() // your existing function for communities
         ]);
   
         setGroups(publicGroupsRes.groups || []);
