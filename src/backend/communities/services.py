@@ -6,30 +6,28 @@ from src.config.firebase import db
 
 
 def auto_create_communities():
-    """
-    Automatically create communities of up to 5 users per shared 'problem'
-    from the Surveys collection.
-    """
     survey_ref = db.collection("Surveys").stream()
-
-    # bucket users by problem
     problem_buckets = {}
     for doc in survey_ref:
         survey = doc.to_dict()
         problem = survey.get("problem")
         if not problem:
             continue
-
         uid = doc.id
         problem_buckets.setdefault(problem.lower(), []).append(uid)
 
     created_communities = []
-
     for problem, users in problem_buckets.items():
+        # skip users already placed in a community for this problem
+        existing = db.collection("Communities").where("tags", "array_contains", problem).stream()
+        existing_member_ids = set()
+        for c in existing:
+            existing_member_ids.update(c.to_dict().get("members", []))
+        users = [u for u in users if u not in existing_member_ids]
+
         while len(users) >= 5:
             community_members = users[:5]
             users = users[5:]
-
             community_data = {
                 "name": f"{problem.capitalize()} Support Community",
                 "description": f"A community for people facing {problem}.",
@@ -38,7 +36,6 @@ def auto_create_communities():
                 "members": community_members,
                 "createdAt": firestore.SERVER_TIMESTAMP,
             }
-
             community_id = create_community_firestore(community_data)
             created_communities.append({"id": community_id, **community_data})
 
