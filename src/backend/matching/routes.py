@@ -1,7 +1,7 @@
 # src/backend/matching/routes.py
 from flask import Blueprint, request, jsonify
 from src.backend.utils.auth import require_auth
-from .services import submit_feeling
+from .services import submit_feeling, cancel_waiting
 
 matching_bp = Blueprint("matching", __name__, url_prefix="/api/match")
 
@@ -23,4 +23,16 @@ def submit_route():
         return jsonify({"error": "text is required"}), 400
 
     result = submit_feeling(uid, text)
+    return jsonify(result), 200
+
+
+@matching_bp.route("/cancel", methods=["POST"])
+@require_auth
+def cancel_route():
+    """
+    Called when the person says "No" to being notified about a future
+    match — takes them out of the waiting pool.
+    """
+    uid = request.user.get("uid")
+    result = cancel_waiting(uid)
     return jsonify(result), 200
