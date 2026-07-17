@@ -1,6 +1,6 @@
 // src/context/UserContext.jsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { initializeApp, getApps, getApp } from 'firebase/app'; // <--- Added getApps, getApp
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 
@@ -24,15 +24,13 @@ export const UserProvider = ({ children }) => {
       console.log("UserContext: Starting Firebase initialization and auth process...");
       let app;
       try {
-        // --- CRITICAL FIX: Check if Firebase app already exists ---
         if (!getApps().length) {
           app = initializeApp(firebaseConfig);
           console.log("UserContext: Firebase app initialized.");
         } else {
-          app = getApp(); // Get the already initialized app
+          app = getApp();
           console.log("UserContext: Firebase app already initialized, reusing existing app.");
         }
-        // --- END CRITICAL FIX ---
 
         const firestoreDb = getFirestore(app);
         const firebaseAuth = getAuth(app);
@@ -42,7 +40,7 @@ export const UserProvider = ({ children }) => {
 
         const unsubscribe = onAuthStateChanged(firebaseAuth, async (user) => {
           console.log("UserContext: onAuthStateChanged triggered. Current user:", user ? user.uid : "null (no user)");
-          
+
           if (user) {
             const currentUserId = user.uid;
             setUserId(currentUserId);
@@ -83,12 +81,16 @@ export const UserProvider = ({ children }) => {
           console.log("UserContext: Attempting sign-in with custom token...");
           await signInWithCustomToken(firebaseAuth, initialAuthToken);
           console.log("UserContext: Custom token sign-in initiated.");
-        } else {
+        } else if (!firebaseAuth.currentUser) {
+          // Every first-time visitor gets a uid immediately, anonymously —
+          // this is what lets ChatOnboarding.jsx submit a match *before*
+          // signup. SignupPage.jsx later upgrades this same account via
+          // linkWithCredential instead of minting a new uid, so nothing
+          // the person said pre-signup gets orphaned.
           console.log("UserContext: Attempting anonymous sign-in...");
           await signInAnonymously(firebaseAuth);
-          console.log("UserContext: Anonymous sign-in initiated.");
+          console.log("UserContext: Anonymous sign-in complete.");
         }
-        
 
         return () => unsubscribe();
       } catch (error) {
@@ -126,4 +128,4 @@ export const useUser = () => {
   }
   return context;
 };
-export {UserContext };
+export { UserContext };
