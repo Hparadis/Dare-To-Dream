@@ -1,316 +1,286 @@
-import React, { useState, useRef, useEffect } from "react";
+// src/pages/ChatOnboarding.jsx
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
-  Box, Paper, Typography, TextField, IconButton, Button,
-  Chip, CircularProgress, Avatar,
+  Container,
+  Paper,
+  Box,
+  Typography,
+  TextField,
+  IconButton,
+  CircularProgress,
+  Chip,
+  Button,
+  Badge,
 } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
-import GroupsIcon from "@mui/icons-material/Groups";
-import { getAuth, signInAnonymously } from "firebase/auth";
+import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
+import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
+import FavoriteIcon from "@mui/icons-material/Favorite";
 import { useNavigate } from "react-router-dom";
+import { extractKeywords } from "../utils/matchAlgorithm";
+import { BASE_URL, sendFriendInvitation } from "../api";
+import { getToken } from "../authHelpers";
 import { useUser } from "../context/UserContext";
-import { extractIntent } from "../utils/intentMatcher";
-import { BASE_URL, fetchGroups, fetchCommunities } from "../api";
-import { joinGroup as joinGroupFirestore, joinCommunity as joinCommunityFirestore } from "../api/firebaseApi";
 
-const PROBLEM_OPTIONS = [
-  { value: "depression", label: "Feeling down / depressed" },
-  { value: "addiction", label: "A habit or addiction" },
-];
-const CAUSE_OPTIONS = [
-  { value: "family", label: "Family" },
-  { value: "relationship", label: "A relationship" },
-  { value: "society", label: "Social / work / school" },
-  { value: "self-inflicted", label: "Myself" },
-  { value: "others", label: "Something else" },
-];
-
-let idCounter = 0;
-const nextId = () => `m${++idCounter}`;
+const GREETING = "Hi, I'm here to help you find someone who gets it. What's going on?";
+// Same pink → purple → teal gradient already used on the avatar hover
+// border in AppHeader.jsx — reused here as the one bold, signature accent.
+const BRAND_GRADIENT = "linear-gradient(45deg, #FF6B8B 0%, #6200EE 50%, #03DAC6 100%)";
 
 export default function ChatOnboarding() {
-  const { userId, isAuthReady } = useUser();
   const navigate = useNavigate();
-  const auth = getAuth();
+  const { userId, isAuthReady } = useUser();
 
-  const [messages, setMessages] = useState([
-    {
-      id: nextId(),
-      from: "bot",
-      type: "text",
-      text: "Hi, I'm here to help you find the right people. What's going on? You can write it in your own words — e.g. \"I feel lonely\" or \"I'm struggling with drinking.\"",
-    },
-  ]);
+  const [messages, setMessages] = useState([{ from: "assistant", text: GREETING }]);
   const [input, setInput] = useState("");
-  const [stage, setStage] = useState("awaiting_input");
-  const [draftIntent, setDraftIntent] = useState({ problem: null, cause: null, rawText: "" });
-  const bottomRef = useRef(null);
+  const [loading, setLoading] = useState(false);
+  const [waitingForMatch, setWaitingForMatch] = useState(false);
+  const endRef = useRef(null);
 
-  // Guests get a real uid immediately so chat/match data has somewhere to live.
-  useEffect(() => {
-    if (isAuthReady && !auth.currentUser) {
-      signInAnonymously(auth).catch((err) => console.error("Anonymous sign-in failed:", err));
-    }
-  }, [isAuthReady]);
-
-  // Already fully signed in (not a guest)? Skip straight to Home.
-  useEffect(() => {
-    if (isAuthReady && auth.currentUser && !auth.currentUser.isAnonymous) {
-      navigate("/home");
-    }
-  }, [isAuthReady]);
+  // Live "words we're picking up" preview — makes the (deliberately
+  // simple) algorithm visible to the person typing, instead of a black box.
+  const liveKeywords = useMemo(() => extractKeywords(input), [input]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const pushMessage = (msg) => setMessages((prev) => [...prev, { id: nextId(), ...msg }]);
+  const pushMessage = (msg) => setMessages((prev) => [...prev, msg]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const text = input.trim();
-    if (!text) return;
-    pushMessage({ from: "user", type: "text", text });
+    if (!text || loading || !userId) return;
+
+    pushMessage({ from: "user", text });
     setInput("");
-    processFreeText(text);
-  };
-
-  const processFreeText = (text) => {
-    const intent = extractIntent(text);
-    const merged = {
-      ...draftIntent,
-      rawText: draftIntent.rawText ? `${draftIntent.rawText} ${text}` : text,
-    };
-    if (!merged.problem && intent.problemConfident) merged.problem = intent.problem;
-    if (!merged.cause && intent.causeConfident) merged.cause = intent.cause;
-    setDraftIntent(merged);
-
-    if (!merged.problem) {
-      setStage("clarify_problem");
-      pushMessage({
-        from: "bot", type: "quick-replies",
-        text: "Thanks for sharing that. Which of these feels closest to what you're dealing with?",
-        options: PROBLEM_OPTIONS,
-        onSelect: (value) => handleProblemPick(value, merged),
-      });
-      return;
-    }
-    if (!merged.cause) {
-      setStage("clarify_cause");
-      pushMessage({
-        from: "bot", type: "quick-replies",
-        text: "Got it. What's mainly behind it?",
-        options: CAUSE_OPTIONS,
-        onSelect: (value) => handleCausePick(value, merged),
-      });
-      return;
-    }
-    runMatching(merged);
-  };
-
-  const handleProblemPick = (value, base = draftIntent) => {
-    const merged = { ...base, problem: value };
-    setDraftIntent(merged);
-    pushMessage({ from: "user", type: "text", text: PROBLEM_OPTIONS.find((o) => o.value === value)?.label || value });
-    if (!merged.cause) {
-      setStage("clarify_cause");
-      pushMessage({
-        from: "bot", type: "quick-replies", text: "What's mainly behind it?",
-        options: CAUSE_OPTIONS, onSelect: (v) => handleCausePick(v, merged),
-      });
-    } else {
-      runMatching(merged);
-    }
-  };
-
-  const handleCausePick = (value, base = draftIntent) => {
-    const merged = { ...base, cause: value };
-    setDraftIntent(merged);
-    pushMessage({ from: "user", type: "text", text: CAUSE_OPTIONS.find((o) => o.value === value)?.label || value });
-    runMatching(merged);
-  };
-
-  const runMatching = async (intent) => {
-    setStage("matching");
-    pushMessage({ from: "bot", type: "loading", text: "Looking for the right people for you..." });
+    setLoading(true);
 
     try {
-      const uid = auth.currentUser?.uid || userId;
-      // Reuse the existing endpoint so auto_create_groups/communities picks this up unchanged.
-      await fetch(`${BASE_URL}/api/survey/submit`, {
+      const token = await getToken();
+      const res = await fetch(`${BASE_URL}/api/match/submit`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: uid,
-          problem: intent.problem,
-          cause: intent.cause,
-          description: intent.rawText,
-          name: "Guest",
-        }),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ text }),
       });
+      const result = await res.json();
 
-      const [groupsRes, communitiesRes] = await Promise.all([
-        fetchGroups().catch(() => ({ groups: [] })),
-        fetchCommunities().catch(() => ({ communities: [] })),
-      ]);
-      const groups = groupsRes?.groups || [];
-      const communities = communitiesRes?.communities || [];
-
-      setMessages((prev) => prev.filter((m) => m.type !== "loading"));
-
-      if (groups.length === 0 && communities.length === 0) {
+      if (result.matched) {
+        setWaitingForMatch(false);
         pushMessage({
-          from: "bot", type: "text",
-          text: "I couldn't find an exact match yet, but that's okay — I'll keep this in mind and let you know as soon as one opens up.",
+          from: "assistant",
+          text: "Found someone who's feeling the same way as you.",
+          match: result,
         });
+      } else if (result.reason === "no_keywords") {
+        pushMessage({ from: "assistant", text: "Tell me a bit more about what's going on." });
       } else {
-        pushMessage({ from: "bot", type: "text", text: "Based on what you shared, here's who I found:" });
-        pushMessage({ from: "bot", type: "matches", groups, communities });
+        setWaitingForMatch(true);
+        pushMessage({
+          from: "assistant",
+          text: "No match yet — but I've got you. I'll ring the bell the moment someone else feels this too.",
+          waiting: true,
+        });
       }
-      setStage("done");
     } catch (err) {
-      console.error("Matching failed:", err);
-      setMessages((prev) => prev.filter((m) => m.type !== "loading"));
-      pushMessage({ from: "bot", type: "text", text: "Something went wrong on my end — mind trying again in a moment?" });
-      setStage("done");
+      console.error("Match submit failed:", err);
+      pushMessage({ from: "assistant", text: "Something went wrong — mind trying again?" });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleJoinAttempt = (kind, item) => {
-    if (auth.currentUser?.isAnonymous) {
-      pushMessage({
-        from: "bot", type: "verify-prompt",
-        text: "Before you join, I just need to quickly verify it's really you — it keeps the space free of trolls and fake accounts. Takes about 10 seconds.",
-        kind, item,
-      });
-      return;
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
     }
-    completeJoin(kind, item);
   };
 
-  const completeJoin = async (kind, item) => {
+  const handleConnect = async (matchedUserId, msgIndex) => {
     try {
-      if (kind === "group") await joinGroupFirestore(auth.currentUser.uid, item.id);
-      else await joinCommunityFirestore(auth.currentUser.uid, item.id);
-      pushMessage({ from: "bot", type: "text", text: `You're in — welcome to ${item.name}!` });
+      await sendFriendInvitation(userId, matchedUserId);
+      setMessages((prev) =>
+        prev.map((m, i) => (i === msgIndex ? { ...m, connectSent: true } : m))
+      );
     } catch (err) {
-      console.error("Join failed:", err);
-      pushMessage({ from: "bot", type: "text", text: "That didn't go through — try again from Home in a moment." });
+      console.error("Failed to send connect invite:", err);
     }
   };
 
-  const goToVerify = (mode, kind, item) => {
-    navigate(mode === "signup" ? "/signup" : "/login", { state: { pendingJoin: { kind, item } } });
-  };
+  if (!isAuthReady) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}>
+        <CircularProgress sx={{ color: "#fff" }} />
+      </Box>
+    );
+  }
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", height: "100vh", bgcolor: "#222" }}>
-      <Box sx={{ p: 2, borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
-        <Typography variant="h6" sx={{ color: "#fff" }}>Dare To Dream</Typography>
-      </Box>
+    <Container maxWidth="sm" sx={{ mt: 6, display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <Paper
+        elevation={6}
+        sx={{
+          p: { xs: 2, sm: 3 },
+          borderRadius: 4,
+          width: "100%",
+          minHeight: "75vh",
+          display: "flex",
+          flexDirection: "column",
+          background: "rgba(255,255,255,0.05)",
+          backdropFilter: "blur(14px)",
+          border: "1px solid rgba(255,255,255,0.15)",
+          color: "#fff",
+        }}
+      >
+        <Typography
+          variant="h5"
+          align="center"
+          sx={{
+            mb: 2,
+            fontFamily: "Poppins, Segoe UI",
+            fontWeight: 700,
+            backgroundImage: BRAND_GRADIENT,
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+          }}
+        >
+          Dare To Dream
+        </Typography>
 
-      <Box sx={{ flex: 1, overflowY: "auto", p: 2, display: "flex", flexDirection: "column", gap: 1.5 }}>
-        {messages.map((m) => (
-          <MessageBubble key={m.id} message={m} onJoin={handleJoinAttempt} onVerify={goToVerify} />
-        ))}
-        <div ref={bottomRef} />
-      </Box>
+        <Box sx={{ flexGrow: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 1.5, px: 0.5 }}>
+          {messages.map((msg, i) => (
+            <Box key={i} sx={{ alignSelf: msg.from === "user" ? "flex-end" : "flex-start", maxWidth: "88%" }}>
+              <Paper
+                sx={{
+                  p: 1.5,
+                  borderRadius: msg.from === "user" ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
+                  background: msg.from === "user" ? "#ff6f61" : "rgba(255,255,255,0.08)",
+                  color: "#fff",
+                  boxShadow: "0 2px 10px rgba(0,0,0,0.25)",
+                }}
+              >
+                <Typography variant="body2">{msg.text}</Typography>
+              </Paper>
 
-      <Box sx={{ p: 2, borderTop: "1px solid rgba(255,255,255,0.1)", display: "flex", gap: 1 }}>
-        <TextField
-          fullWidth
-          size="small"
-          placeholder="Type how you're feeling..."
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSend()}
-          disabled={stage === "matching"}
-          sx={{ bgcolor: "#333", borderRadius: 2, "& .MuiInputBase-input": { color: "#fff" } }}
-        />
-        <IconButton onClick={handleSend} disabled={stage === "matching" || !input.trim()} sx={{ color: "#fff" }}>
-          <SendIcon />
-        </IconButton>
-      </Box>
-    </Box>
-  );
-}
-
-function MessageBubble({ message, onJoin, onVerify }) {
-  if (message.type === "loading") {
-    return (
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1, color: "#aaa" }}>
-        <CircularProgress size={16} sx={{ color: "#aaa" }} />
-        <Typography variant="body2">{message.text}</Typography>
-      </Box>
-    );
-  }
-
-  if (message.type === "quick-replies") {
-    return (
-      <Box>
-        <Bubble isBot text={message.text} />
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
-          {message.options.map((opt) => (
-            <Chip
-              key={opt.value}
-              label={opt.label}
-              onClick={() => message.onSelect(opt.value)}
-              sx={{ bgcolor: "#444", color: "#fff", "&:hover": { bgcolor: "#555" } }}
-            />
-          ))}
-        </Box>
-      </Box>
-    );
-  }
-
-  if (message.type === "matches") {
-    const items = [
-      ...message.groups.map((g) => ({ ...g, kind: "group" })),
-      ...message.communities.map((c) => ({ ...c, kind: "community" })),
-    ];
-    return (
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-        {items.map((item) => (
-          <Paper key={`${item.kind}-${item.id}`} sx={{ p: 1.5, bgcolor: "#333", color: "#fff", display: "flex", alignItems: "center", gap: 1.5 }}>
-            <Avatar sx={{ bgcolor: item.kind === "group" ? "#2196f3" : "#9c27b0" }}>
-              <GroupsIcon />
-            </Avatar>
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="subtitle2">{item.name}</Typography>
-              <Typography variant="caption" sx={{ color: "#aaa" }}>
-                {item.kind === "group" ? "Group" : "Community"} · {item.members?.length || 0} members
-              </Typography>
+              {msg.match && (
+                <Paper
+                  sx={{
+                    mt: 1.5,
+                    p: 2,
+                    borderRadius: 3,
+                    background: "rgba(20,20,20,0.9)",
+                    backgroundImage: `linear-gradient(rgba(20,20,20,0.92), rgba(20,20,20,0.92)), ${BRAND_GRADIENT}`,
+                    backgroundOrigin: "border-box",
+                    backgroundClip: "padding-box, border-box",
+                    border: "1px solid transparent",
+                    boxShadow: "0 4px 20px rgba(98,0,238,0.35)",
+                  }}
+                >
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+                    <FavoriteIcon sx={{ color: "#FF6B8B" }} fontSize="small" />
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                      It's a match
+                    </Typography>
+                  </Box>
+                  {msg.match.sharedKeywords?.length > 0 && (
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mb: 1.5 }}>
+                      {msg.match.sharedKeywords.map((kw) => (
+                        <Chip
+                          key={kw}
+                          label={kw}
+                          size="small"
+                          sx={{ background: "rgba(255,255,255,0.12)", color: "#fff" }}
+                        />
+                      ))}
+                    </Box>
+                  )}
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    disabled={msg.connectSent}
+                    onClick={() => handleConnect(msg.match.matchedUserId, i)}
+                    sx={{
+                      backgroundImage: BRAND_GRADIENT,
+                      color: "#fff",
+                      fontWeight: 600,
+                      "&:hover": { opacity: 0.9, backgroundImage: BRAND_GRADIENT },
+                      "&.Mui-disabled": { backgroundImage: "none", background: "#444", color: "#aaa" },
+                    }}
+                  >
+                    {msg.connectSent ? "Invite sent" : "Say hi"}
+                  </Button>
+                </Paper>
+              )}
             </Box>
-            <Button size="small" variant="contained" onClick={() => onJoin(item.kind, item)}>Join</Button>
-          </Paper>
-        ))}
-      </Box>
-    );
-  }
-
-  if (message.type === "verify-prompt") {
-    return (
-      <Box>
-        <Bubble isBot text={message.text} />
-        <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
-          <Button size="small" variant="contained" onClick={() => onVerify("signup", message.kind, message.item)}>Sign Up</Button>
-          <Button size="small" variant="outlined" sx={{ color: "#fff", borderColor: "#666" }} onClick={() => onVerify("login", message.kind, message.item)}>Log In</Button>
+          ))}
+          {loading && (
+            <Box sx={{ alignSelf: "flex-start" }}>
+              <CircularProgress size={20} sx={{ color: "#fff" }} />
+            </Box>
+          )}
+          <div ref={endRef} />
         </Box>
-      </Box>
-    );
-  }
 
-  return <Bubble isBot={message.from === "bot"} text={message.text} />;
-}
+        {liveKeywords.length > 0 && (
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 1.5, mb: 0.5 }}>
+            {liveKeywords.slice(0, 8).map((kw) => (
+              <Chip
+                key={kw}
+                label={kw}
+                size="small"
+                sx={{ background: "rgba(255,255,255,0.08)", color: "#ccc", fontSize: "0.7rem" }}
+              />
+            ))}
+          </Box>
+        )}
 
-function Bubble({ isBot, text }) {
-  return (
-    <Box sx={{ display: "flex", justifyContent: isBot ? "flex-start" : "flex-end" }}>
-      <Paper sx={{
-        p: "10px 14px", maxWidth: "75%",
-        bgcolor: isBot ? "#333" : "#1976d2", color: "#fff",
-        borderRadius: isBot ? "16px 16px 16px 4px" : "16px 16px 4px 16px",
-      }}>
-        <Typography variant="body2">{text}</Typography>
+        <Box sx={{ display: "flex", alignItems: "flex-end", gap: 1, mt: 1 }}>
+          <TextField
+            fullWidth
+            placeholder="Type how you're feeling..."
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            multiline
+            maxRows={4}
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                color: "#fff",
+                background: "rgba(255,255,255,0.05)",
+                borderRadius: "20px",
+                "& fieldset": { borderColor: "rgba(255,255,255,0.25)" },
+                "&:hover fieldset": { borderColor: "rgba(255,255,255,0.4)" },
+                "&.Mui-focused fieldset": { borderColor: "#ff6f61" },
+              },
+            }}
+          />
+          <IconButton
+            onClick={() => navigate("/notifications")}
+            sx={{ color: waitingForMatch ? "#FF6B8B" : "#888" }}
+            aria-label="notifications"
+          >
+            <Badge color="error" variant="dot" invisible={!waitingForMatch}>
+              {waitingForMatch ? <NotificationsActiveIcon /> : <NotificationsNoneIcon />}
+            </Badge>
+          </IconButton>
+          <IconButton
+            onClick={handleSend}
+            disabled={loading || !input.trim()}
+            sx={{
+              backgroundImage: BRAND_GRADIENT,
+              color: "#fff",
+              "&:hover": { opacity: 0.9 },
+              "&.Mui-disabled": { backgroundImage: "none", background: "#444", color: "#777" },
+            }}
+          >
+            <SendIcon />
+          </IconButton>
+        </Box>
+
+        <Typography variant="caption" align="center" sx={{ mt: 1.5, color: "#888" }}>
+          Just type — no account needed until you want to say hi.
+        </Typography>
       </Paper>
-    </Box>
+    </Container>
   );
 }
