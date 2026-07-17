@@ -120,3 +120,18 @@ def submit_feeling(user_id: str, text: str) -> dict:
         "updatedAt": firestore.SERVER_TIMESTAMP,
     })
     return {"matched": False, "reason": "no_match_yet"}
+
+
+def cancel_waiting(user_id: str) -> dict:
+    """
+    Called when the person answers "No" to 'do you want to be notified if
+    we find someone?' — pulls their entry out of the matching pool so
+    future submitters can't match against it. Doesn't delete the record,
+    just marks it out of play.
+    """
+    doc_ref = db.collection(FEELINGS_COLLECTION).document(user_id)
+    snap = doc_ref.get()
+    if snap.exists and snap.to_dict().get("status") == "waiting":
+        doc_ref.update({"status": "cancelled", "updatedAt": firestore.SERVER_TIMESTAMP})
+        return {"cancelled": True}
+    return {"cancelled": False}
