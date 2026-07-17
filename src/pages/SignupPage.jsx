@@ -1,25 +1,21 @@
-import React, { useState,useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Container, Paper, Grid, Typography, Button, Divider, CircularProgress } from "@mui/material";
 import CustomTextField from "./CustomTextField";
 // import tracker from "../tracker";
 import { useNavigate } from "react-router-dom";
-// import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth , db } from "../config/firebase"; // ✅ correct
+import { EmailAuthProvider, linkWithCredential, createUserWithEmailAndPassword } from "firebase/auth";
+import { auth, db } from "../config/firebase";
 import { useUser } from "../context/UserContext";
 import { doc, setDoc } from "firebase/firestore";
-import { createUserWithEmailAndPassword, linkWithCredential, EmailAuthProvider } from "firebase/auth";
-import { useLocation } from "react-router-dom";
-import { joinGroup, joinCommunity } from "../api/firebaseApi";
 
 export default function SignupPage() {
   const { setUserName, setUserDescription } = useUser();
   const navigate = useNavigate();
-  const location = useLocation();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
-    password: ""
+    password: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -32,42 +28,45 @@ export default function SignupPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
-  
+
     const { firstName, lastName, email, password } = formData;
-  
+
     if (!firstName || !lastName || !email || !password) {
       setError("Please fill out all required fields.");
       setLoading(false);
       return;
     }
-  
-    try {
-      // const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      // console.log("User created:", userCredential.user);
-      const current = auth.currentUser;
-      const wasGuest = !!(current && current.isAnonymous);
-      let userCredential;
 
-      if (wasGuest) {
+    try {
+      const currentUser = auth.currentUser;
+      let user;
+
+      if (currentUser && currentUser.isAnonymous) {
+        // They already have a uid from landing on the chat onboarding flow
+        // (and possibly a Feelings entry / match tied to it). Upgrade that
+        // same account instead of minting a new uid, so nothing they
+        // already typed gets orphaned.
         const credential = EmailAuthProvider.credential(email, password);
-        userCredential = await linkWithCredential(current, credential);
+        const result = await linkWithCredential(currentUser, credential);
+        user = result.user;
       } else {
-        userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const result = await createUserWithEmailAndPassword(auth, email, password);
+        user = result.user;
       }
 
       // ✅ Save profile info in Firestore
-      const userDocRef = doc(db, "Surveys", userCredential.user.uid);
+      const userDocRef = doc(db, "Surveys", user.uid);
       await setDoc(
         userDocRef,
         {
           name: firstName,
-          description: "", // You can optionally collect this during signup
+          description: "",
           createdAt: new Date().toISOString(),
         },
         { merge: true }
       );
 
-      const profileDocRef = doc(db, "Users", userCredential.user.uid);
+      const profileDocRef = doc(db, "Users", user.uid);
       await setDoc(
         profileDocRef,
         {
@@ -83,18 +82,10 @@ export default function SignupPage() {
       setUserName(firstName);
       setUserDescription("");
 
-      // navigate("/survey");
-      const pendingJoin = location.state?.pendingJoin;
-      if (pendingJoin) {
-        const { kind, item } = pendingJoin;
-        if (kind === "group") await joinGroup(userCredential.user.uid, item.id);
-        else await joinCommunity(userCredential.user.uid, item.id);
-      }
-      navigate(wasGuest ? "/home" : "/survey");
-
+      navigate("/survey");
     } catch (error) {
       console.error("Sign-up error:", error);
-  
+
       switch (error.code) {
         case "auth/email-already-in-use":
           setError("This email is already in use.");
@@ -105,6 +96,9 @@ export default function SignupPage() {
         case "auth/weak-password":
           setError("Password should be at least 6 characters.");
           break;
+        case "auth/credential-already-in-use":
+          setError("This email is already linked to another account.");
+          break;
         default:
           setError("Sign-up failed. " + error.message);
           break;
@@ -113,17 +107,11 @@ export default function SignupPage() {
       setLoading(false);
     }
   };
-  
+
   useEffect(() => {
-    // Track when this page is viewed
     // tracker.trackEvent("page_view", { page: "Signup" });
   }, []);
-  const handleLogin = (isSuccess) => {
-    // Track the login event with success status
-    // tracker.trackEvent("user_login", { success: isSuccess });
-    // Add your login logic here...
-  };
-  
+
   return (
     <Container maxWidth="sm" sx={{ mt: 8, display: "flex", flexDirection: "column", alignItems: "center" }}>
       <Paper
@@ -222,7 +210,7 @@ export default function SignupPage() {
               "&:hover": { backgroundColor: "rgba(255, 255, 255, 0.2)" },
             }}
           >
-          Google
+            Google
           </Button>
         </Grid>
       </Paper>

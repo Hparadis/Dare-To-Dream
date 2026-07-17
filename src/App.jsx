@@ -19,36 +19,38 @@ import SongsPlaylist from "./pages/SongsPlaylist";
 import Party from "./pages/Party";
 import Games from "./pages/Games";
 import Socialize from "./pages/Socialize";
+import ChatOnboarding from "./pages/ChatOnboarding";
 import { Container } from "@mui/material";
 // import tracker from "./tracker";
 import Notifications from './pages/Notifications';
-import ChatOnboarding from "./pages/ChatOnboarding";
 
 function App() {
-  // const [initialRoute, setInitialRoute] = useState(null);
+  const [initialRoute, setInitialRoute] = useState(null);
 
-  // useEffect(() => {
-  //   // tracker.init();
+  useEffect(() => {
+    // tracker.init();
 
-  //   // Check localStorage for returning user
-  //   const hasVisitedBefore = localStorage.getItem("hasVisited");
+    // Check localStorage for returning user
+    const hasVisitedBefore = localStorage.getItem("hasVisited");
 
-  //   if (hasVisitedBefore) {
-  //     setInitialRoute("/login");
-  //   } else {
-  //     localStorage.setItem("hasVisited", "true");
-  //     setInitialRoute("/signup");
-  //   }
-  // }, []);
+    if (hasVisitedBefore) {
+      setInitialRoute("/login");
+    } else {
+      localStorage.setItem("hasVisited", "true");
+      // First-time visitors land in the chat onboarding flow instead of a
+      // signup wall — signup is deferred until they try to join something.
+      setInitialRoute("/chat");
+    }
+  }, []);
 
-  // if (initialRoute === null) return null; // Wait until route is determined
+  if (initialRoute === null) return null; // Wait until route is determined
 
   return (
     <Router>
       <Container maxWidth="md">
         <Routes>
-          {/* <Route path="/" element={<Navigate to={initialRoute} />} /> */}
-          <Route path="/" element={<ChatOnboarding />} />
+          <Route path="/" element={<Navigate to={initialRoute} />} />
+          <Route path="/chat" element={<ChatOnboarding />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/survey" element={<Survey />} />
@@ -64,7 +66,6 @@ function App() {
           <Route path="/games" element={<Games />} />
           <Route path="/socialize" element={<Socialize />} />
           <Route path="/notifications" element={<Notifications />} />
-
         </Routes>
       </Container>
     </Router>
