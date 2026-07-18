@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { Box, Typography } from "@mui/material";
 
-const BRAND_GRADIENT = "linear-gradient(45deg, #0A0C27 0%, #0F387A 50%, #00C3FF 100%)";
+const BRAND_GRADIENT = "#fff";
 
 export default function TypewriterWelcome({
   text = "Welcome to Dare To Dream",
