@@ -31,3 +31,5 @@ dist/
 .vercel
 __pycache__/
 *.pyc
+src/backend/firebase_credentials.json
+src/config/*firebase-adminsdk*.json
