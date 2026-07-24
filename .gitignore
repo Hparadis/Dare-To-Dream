@@ -33,3 +33,4 @@ __pycache__/
 *.pyc
 src/backend/firebase_credentials.json
 src/config/*firebase-adminsdk*.json
+google-cloud-sdk/
