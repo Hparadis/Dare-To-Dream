@@ -4,7 +4,6 @@ import LightbulbIcon from "@mui/icons-material/Lightbulb";
 import NatureIcon from "@mui/icons-material/Nature"
 import WhatshotIcon from "@mui/icons-material/Whatshot";
 import StarsIcon from "@mui/icons-material/Stars";
-import FavoriteIcon from "@mui/icons-material/Favorite";
 import SelfImprovementIcon from "@mui/icons-material/SelfImprovement";
 import BedtimeIcon from "@mui/icons-material/Bedtime";
 

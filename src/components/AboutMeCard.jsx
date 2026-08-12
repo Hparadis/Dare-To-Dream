@@ -1,13 +1,16 @@
 // src/components/AboutMeCard.jsx
 import React, { useState } from "react";
-import { Box, Paper, Typography, TextField, Button, IconButton, Tooltip, Grid } from "@mui/material";
-import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-import { BRAND_COLOR, BRAND_COLOR_TEXT_ON } from "../theme/brand";
+import { Box, Paper, Typography, TextField, Button, Grid } from "@mui/material";
+import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
+import SkipNextRoundedIcon from "@mui/icons-material/SkipNextRounded";
+import {
+  BRAND_COLOR,
+  BRAND_COLOR_TEXT_ON,
+  BRAND_WHITE,
+  BRAND_GRAY_300,
+  BRAND_GRAY_BORDER,
+} from "../theme/brand";
 
-/**
- * onSave receives { name, age, hobbies } — not a single string — so this
- * can also be reused anywhere else a short profile is needed.
- */
 export default function AboutMeCard({
   title = "Let us know a bit about yourself",
   subtitle,
@@ -28,40 +31,42 @@ export default function AboutMeCard({
 
   const fieldSx = {
     "& .MuiOutlinedInput-root": {
-      color: "#fff",
+      color: BRAND_WHITE,
       background: "rgba(255,255,255,0.05)",
-      "& fieldset": { borderColor: "rgba(255,255,255,0.25)" },
+      borderRadius: "14px",
+      "& fieldset": { borderColor: BRAND_GRAY_BORDER },
       "&:hover fieldset": { borderColor: "rgba(255,255,255,0.4)" },
       "&.Mui-focused fieldset": { borderColor: BRAND_COLOR },
     },
-    "& .MuiInputLabel-root": { color: "#999" },
+    "& .MuiInputLabel-root": { color: BRAND_GRAY_300 },
     "& .MuiInputLabel-root.Mui-focused": { color: BRAND_COLOR },
   };
 
   return (
     <Paper
+      elevation={0}
       sx={{
-        p: { xs: 2, sm: 3 },
-        borderRadius: 3,
-        background: "rgba(255,255,255,0.06)",
-        border: "1px solid rgba(255,255,255,0.15)",
+        p: { xs: 3, sm: 4 },
+        borderRadius: 4,
+        background: "transparent",
+        border: "none",
         width: "100%",
-        maxWidth: { xs: "100%", sm: 480, md: 560 },
+        maxWidth: 480,
         mx: "auto",
-        color: "#fff",
+        color: BRAND_WHITE,
         boxSizing: "border-box",
       }}
     >
-      <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: subtitle ? 0.5 : 2 }}>
+      <Typography variant="h6" sx={{ fontWeight: 700, mb: subtitle ? 0.5 : 2.5 }}>
         {title}
       </Typography>
       {subtitle && (
-        <Typography variant="body2" sx={{ color: "#aaa", mb: 2 }}>
+        <Typography variant="body2" sx={{ color: BRAND_GRAY_300, mb: 2.5 }}>
           {subtitle}
         </Typography>
       )}
 
-      <Grid container spacing={1.5} sx={{ mb: 2 }}>
+      <Grid container spacing={1.5} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={8}>
           <TextField fullWidth label="Name" value={name} onChange={(e) => setName(e.target.value)} sx={fieldSx} />
         </Grid>
@@ -87,38 +92,36 @@ export default function AboutMeCard({
         </Grid>
       </Grid>
 
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: allowSkip ? "space-between" : "flex-end",
-          flexWrap: "wrap",
-          gap: 1,
-        }}
-      >
-        {allowSkip && (
-          <Tooltip title="Skip for now">
-            <span>
-              <IconButton onClick={onSkip} disabled={saving} sx={{ color: "#888" }} aria-label="skip">
-                <ArrowForwardIcon />
-              </IconButton>
-            </span>
-          </Tooltip>
-        )}
+      <Box sx={{ display: "flex", gap: 1.5 }}>
         <Button
+          fullWidth
           variant="contained"
           disabled={!canSave || saving}
           onClick={handleSave}
+          startIcon={<ArrowForwardRoundedIcon />}
           sx={{
             background: BRAND_COLOR,
             color: BRAND_COLOR_TEXT_ON,
             fontWeight: 600,
+            justifyContent: "center",
             "&:hover": { background: BRAND_COLOR, opacity: 0.9 },
-            "&.Mui-disabled": { background: "#444", color: "#777" },
+            "&.Mui-disabled": { background: "rgba(255,255,255,0.08)", color: BRAND_GRAY_300 },
           }}
         >
           {saving ? "Saving..." : "Save"}
         </Button>
+        {allowSkip && (
+          <Button
+            fullWidth
+            variant="text"
+            disabled={saving}
+            onClick={onSkip}
+            startIcon={<SkipNextRoundedIcon />}
+            sx={{ color: BRAND_GRAY_300, justifyContent: "center" }}
+          >
+            Skip
+          </Button>
+        )}
       </Box>
     </Paper>
   );

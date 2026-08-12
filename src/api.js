@@ -133,11 +133,11 @@ export const getSuggestedFriends = async (userId) => {
   const data = await handleApiResponse(response);
   return data.suggested || [];
 };
-export const sendFriendInvitation = async (fromUserId, toUserId) => {
+export const sendFriendInvitation = async (fromUserId, toUserId, message = "") => {
   const response = await fetch(`${BASE_URL}/api/friends/invite`, {
     method: 'POST',
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ fromUserId, toUserId })
+    body: JSON.stringify({ fromUserId, toUserId, message })
   });
 
   if (!response.ok) {

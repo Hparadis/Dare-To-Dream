@@ -1,7 +1,8 @@
 # src/backend/matching/routes.py
 from flask import Blueprint, request, jsonify
 from src.backend.utils.auth import require_auth
-from .services import submit_feeling, cancel_waiting
+from .services import submit_feeling, cancel_waiting, confirm_waiting
+from src.backend.safety.crisis_detection import detect_crisis_language, log_crisis_flag, CRISIS_RESOURCES
 
 matching_bp = Blueprint("matching", __name__, url_prefix="/api/match")
 
@@ -22,6 +23,14 @@ def submit_route():
     if not text:
         return jsonify({"error": "text is required"}), 400
 
+    if detect_crisis_language(text):
+        log_crisis_flag(uid, text)
+        return jsonify({
+            "matched": False,
+            "reason": "crisis_detected",
+            "resources": CRISIS_RESOURCES,
+        }), 200
+
     result = submit_feeling(uid, text)
     return jsonify(result), 200
 
@@ -35,4 +44,11 @@ def cancel_route():
     """
     uid = request.user.get("uid")
     result = cancel_waiting(uid)
+    return jsonify(result), 200
+
+@matching_bp.route("/confirm-waiting", methods=["POST"])
+@require_auth
+def confirm_waiting_route():
+    uid = request.user.get("uid")
+    result = confirm_waiting(uid)
     return jsonify(result), 200

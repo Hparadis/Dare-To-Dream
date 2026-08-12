@@ -12,7 +12,7 @@ def _initialize_firebase():
 
     creds_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "").strip()
     inline_creds = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON", "").strip()
-    local_default = Path("src/config/dare-to-dream-9c136-firebase-adminsdk-fbsvc-ebb89d4994.json")
+    local_default = Path("src/config/dare-to-dream-9c136-firebase-adminsdk-fbsvc-91d3bc447b.json")
 
     if creds_path and Path(creds_path).exists():
         cred = credentials.Certificate(creds_path)

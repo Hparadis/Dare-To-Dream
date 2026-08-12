@@ -4,6 +4,7 @@ from flask import Blueprint, request, jsonify
 from src.backend.friends.services import get_similar_friends, get_saved_friends,get_accepted_friends,get_chat_messages, save_message_to_db
 from src.backend.friends.firestore import get_similar_users
 from src.config.firebase import db, get_firestore
+from src.backend.safety.crisis_detection import detect_crisis_language, log_crisis_flag, CRISIS_RESOURCES
 
 friends_bp = Blueprint("friends", __name__, url_prefix="/api/friends")
 
@@ -138,13 +139,20 @@ def get_messages(conversation_id):
 @friends_bp.route("/chats/<conversation_id>/send", methods=["POST"])
 def send_message(conversation_id):
     data = request.get_json()
-    content = data.get("message")  # must match frontend payload
-    sender_id = data.get("senderId")  # pass senderId from frontend
-    receiver_id = data.get("receiverId")  # pass receiverId
+    content = data.get("message")
+    sender_id = data.get("senderId")
+    receiver_id = data.get("receiverId")
     timestamp = data.get("timestamp")
 
     if not content or not sender_id or not receiver_id:
         return jsonify({"error": "Missing fields"}), 400
+
+    if detect_crisis_language(content):
+        log_crisis_flag(sender_id, content)
+        # Deliberately not saved anywhere shared — the other person never
+        # sees this message or knows anything was flagged. Only the
+        # sender's own screen shows the resources, handled client-side.
+        return jsonify({"flagged": True, "resources": CRISIS_RESOURCES}), 200
 
     message_obj = {
         "senderId": sender_id,
@@ -153,10 +161,9 @@ def send_message(conversation_id):
         "timestamp": timestamp,
         "conversationId": conversation_id
     }
+    save_message_to_db(conversation_id, message_obj)
+    return jsonify({"flagged": False, "message": message_obj}), 200
 
-    save_message_to_db(conversation_id, message_obj)  # implement in services.py
-
-    return jsonify({"message": message_obj}), 200
 @friends_bp.route("/batch", methods=["POST"])
 def get_user_profiles_batch():
     data = request.json
