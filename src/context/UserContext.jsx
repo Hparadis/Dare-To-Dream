@@ -39,12 +39,10 @@ export const UserProvider = ({ children }) => {
         setAuth(firebaseAuth);
 
         const unsubscribe = onAuthStateChanged(firebaseAuth, async (user) => {
-          console.log("UserContext: onAuthStateChanged triggered. Current user:", user ? user.uid : "null (no user)");
 
           if (user) {
             const currentUserId = user.uid;
             setUserId(currentUserId);
-            console.log("UserContext: userId state updated to:", currentUserId);
 
             const userDocRef = doc(firestoreDb, `Surveys`, currentUserId);
             const userDocSnap = await getDoc(userDocRef);
@@ -53,7 +51,7 @@ export const UserProvider = ({ children }) => {
               const userData = userDocSnap.data();
               setUserName(userData.name || `User ${currentUserId.substring(0, 4)}`);
               setUserDescription(userData.description || 'No description provided.');
-              console.log("UserContext: Fetched user profile:", userData.name, userData.description);
+
             } else {
               const defaultName = `User-${currentUserId.substring(0, 4)}`;
               const defaultDescription = 'New user profile.';
@@ -89,7 +87,6 @@ export const UserProvider = ({ children }) => {
           // the person said pre-signup gets orphaned.
           console.log("UserContext: Attempting anonymous sign-in...");
           await signInAnonymously(firebaseAuth);
-          console.log("UserContext: Anonymous sign-in complete.");
         }
 
         return () => unsubscribe();

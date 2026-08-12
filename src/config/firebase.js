@@ -1,5 +1,4 @@
-console.log("My API Key is:",import.meta.env.VITE_FIREBASE_API_KEY); 
-// Or console.log(import.meta.env.VITE_FIREBASE_API_KEY) for Vite
+ // Or console.log(import.meta.env.VITE_FIREBASE_API_KEY) for Vite
 
 import { initializeApp } from "firebase/app";
 import {
