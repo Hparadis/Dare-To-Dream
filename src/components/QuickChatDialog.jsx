@@ -8,6 +8,7 @@ import { BRAND_COLOR, BRAND_COLOR_TEXT_ON } from "../theme/brand";
 
 export default function QuickChatDialog({ open, onClose, userId, otherUserId, otherLabel = "them" }) {
   const [messages, setMessages] = useState([]);
+  const [localNotices, setLocalNotices] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const endRef = useRef(null);
@@ -15,15 +16,26 @@ export default function QuickChatDialog({ open, onClose, userId, otherUserId, ot
 
   useEffect(() => {
     if (!open || !conversationId) return;
-    (async () => {
+    let active = true;
+    setMessages([]);
+    setLocalNotices([]);
+
+    const fetchMessages = async () => {
       try {
         const history = await getChatMessages(userId, otherUserId);
-        setMessages(history || []);
+        if (active) setMessages(history || []);
       } catch (err) {
         console.error("Failed to load quick chat:", err);
       }
-    })();
-  }, [open, conversationId]);
+    };
+
+    fetchMessages();
+    const interval = setInterval(fetchMessages, 2500);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [open, conversationId, userId, otherUserId]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -35,9 +47,16 @@ export default function QuickChatDialog({ open, onClose, userId, otherUserId, ot
     setInput("");
     setLoading(true);
     const payload = { senderId: userId, receiverId: otherUserId, content: text, timestamp: new Date().toISOString() };
-    setMessages((prev) => [...prev, payload]);
     try {
-      await sendMessage(conversationId, payload);
+      const data = await sendMessage(conversationId, payload);
+      if (data?.flagged) {
+        setLocalNotices((prev) => [
+          ...prev,
+          { id: `notice-${Date.now()}`, text: data.resources?.message, hotlines: data.resources?.hotlines },
+        ]);
+      } else {
+        setMessages((prev) => [...prev, payload]);
+      }
     } catch (err) {
       console.error("Quick chat send failed:", err);
     } finally {
@@ -55,7 +74,7 @@ export default function QuickChatDialog({ open, onClose, userId, otherUserId, ot
       </DialogTitle>
       <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 1, minHeight: 320 }}>
         <Box sx={{ flexGrow: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 1 }}>
-          {messages.map((m, i) => (
+        {messages.map((m, i) => (
             <Paper
               key={i}
               sx={{
@@ -70,6 +89,44 @@ export default function QuickChatDialog({ open, onClose, userId, otherUserId, ot
               <Typography variant="body2">{m.content}</Typography>
             </Paper>
           ))}
+          {localNotices.map((n) => (
+            <Paper
+              key={n.id}
+              sx={{
+                alignSelf: "center",
+                maxWidth: "95%",
+                p: 1.5,
+                borderRadius: 3,
+                background: "rgba(224,92,92,0.1)",
+                border: "1.5px solid #e05c5c",
+              }}
+            >
+              <Typography variant="body2" sx={{ color: "#fff", mb: n.hotlines?.length ? 1 : 0 }}>
+                {n.text}
+              </Typography>
+              {n.hotlines?.map((h) => (
+                <Typography key={h.name} variant="caption" sx={{ display: "block", color: "#ccc" }}>
+                  {h.name} — {h.contact}
+                </Typography>
+              ))}
+            </Paper>
+          ))}
+            {/* ) : (
+              <Paper
+                key={i}
+                sx={{
+                  alignSelf: m.senderId === userId ? "flex-end" : "flex-start",
+                  maxWidth: "80%",
+                  p: 1.2,
+                  borderRadius: m.senderId === userId ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
+                  background: m.senderId === userId ? BRAND_COLOR : "rgba(255,255,255,0.08)",
+                  color: m.senderId === userId ? BRAND_COLOR_TEXT_ON : "#fff",
+                }}
+              >
+                <Typography variant="body2">{m.content}</Typography>
+              </Paper>
+            )
+          )} */}
           <div ref={endRef} />
         </Box>
         <Box sx={{ display: "flex", gap: 1 }}>

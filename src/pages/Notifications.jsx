@@ -21,11 +21,13 @@ import {
   Box,
   Chip,
 } from "@mui/material";
+import QuickChatDialog from "../components/QuickChatDialog";
 
 export default function Notifications() {
   const [invites, setInvites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null); // Current user
+  const [activeChat, setActiveChat] = useState(null); // { otherUserId } once a match is accepted
   const db = getFirestore();
   const auth = getAuth();
 
@@ -85,6 +87,7 @@ export default function Notifications() {
         ]);
 
         // 3️⃣ Notify inviter about acceptance
+        // 3️⃣ Notify inviter about acceptance
         await addDoc(collection(db, "Invitations"), {
           fromUserId: user.uid,
           fromUserName: user.displayName || "Unknown",
@@ -94,16 +97,14 @@ export default function Notifications() {
           timestamp: new Date().toISOString(),
           message: `${user.displayName || "Someone"} accepted your friend request`,
         });
-      }
 
-      // 4️⃣ Update local state to display accepted/rejected status
-      setInvites((prev) =>
-        prev.map((i) =>
-          i.id === invite.id
-            ? { ...i, status: accepted ? "accepted" : "rejected" }
-            : i
-        )
-      );
+        // 4️⃣ If this came from the matching algorithm rather than a
+        // regular friend request, accepting IS the whole point — open
+        // the chat immediately instead of leaving it at a checkmark.
+        if (invite.type === "feeling_match") {
+          setActiveChat({ otherUserId: invite.fromUserId });
+        }
+        }
     } catch (err) {
       console.error("Error responding to invite:", err);
     }
@@ -196,7 +197,15 @@ export default function Notifications() {
             </CardContent>
           </Card>
         ))
-      )}
-    </Box>
-  );
-}
+        )}
+
+        <QuickChatDialog
+          open={!!activeChat}
+          onClose={() => setActiveChat(null)}
+          userId={user?.uid}
+          otherUserId={activeChat?.otherUserId}
+          otherLabel="them"
+        />
+      </Box>
+    );
+  }
