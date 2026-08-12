@@ -1,4 +1,5 @@
 import os
+import re
 
 from flask import Flask
 from flask_cors import CORS
@@ -22,6 +23,14 @@ else:
         os.getenv("FRONTEND_ORIGIN", "").strip(),
     ]
     allowed_origins = [origin for origin in allowed_origins if origin]
+
+# Always allow any Vercel deployment for this project, regardless of what
+# CORS_ORIGINS is set to on Render — covers both the short alias
+# (dare-to-dream-seven.vercel.app) and the longer per-deploy URLs Vercel
+# generates automatically, so a new preview link doesn't break CORS again.
+allowed_origins.append(
+    re.compile(r"^https://dare-to-dream(-[a-zA-Z0-9]+)?(-hirwa-paradis-cesars-projects)?\.vercel\.app$")
+)
 
 CORS(app, resources={r"/*": {"origins": allowed_origins}})
 app.register_blueprint(survey_bp)
