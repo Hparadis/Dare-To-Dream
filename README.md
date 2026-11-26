@@ -28,7 +28,7 @@ Features planned for later (mood tracker, offline journaling, coping exercises, 
 | Front end | React + Vite (JavaScript) |
 | Back end | Python (Flask) |
 | Database / real-time | Firebase Firestore |
-| Hosting | Vercel (front end) [ADD BACK-END HOST, e.g. Render] |
+| Hosting | Vercel (front end)  Render |
 
 ## Project structure
 
@@ -160,7 +160,7 @@ npm run preview
 ## Deployment
 
 - **Front end:** connected to Vercel; every push to `main` deploys automatically. Add the same `VITE_...` variables under **Vercel, Project Settings, Environment Variables**.
-- **Back end:** [DESCRIBE WHERE THE FLASK BACK END IS HOSTED AND HOW IT IS DEPLOYED].
+- **Back end:** deployed on render.
 
 ## Troubleshooting
 
@@ -176,7 +176,7 @@ npm run preview
 
 - Messages are protected in transit (HTTPS) but are not end-to-end encrypted.
 - Matching needs at least two users online at the same time.
-- [ADD ANY OTHER LIMITATION, e.g. crisis detection is keyword-based and may miss some phrases]
+- crisis-detection system might miss some words
 
 ## Development process
 
